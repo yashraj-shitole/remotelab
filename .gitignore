@@ -6,5 +6,6 @@ out/
 *.vsix
 *.log
 .env
+certs/
 .DS_Store
 Thumbs.db

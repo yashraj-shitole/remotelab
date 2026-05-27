@@ -1,7 +1,7 @@
 import http from "node:http";
 import { URL } from "node:url";
 import { RawData, WebSocket, WebSocketServer } from "ws";
-import { createEnvelope, PeerRole, RelayEnvelope } from "@companion/shared";
+import { createEnvelope, PeerRole, RelayEnvelope } from "@remotelab/shared";
 
 type Peer = {
   id: string;
@@ -13,8 +13,8 @@ type Peer = {
   socket: WebSocket;
 };
 
-const port = Number(process.env.PORT ?? process.env.COMPANION_RELAY_PORT ?? 8787);
-const sharedSecret = process.env.COMPANION_RELAY_SHARED_SECRET;
+const port = Number(process.env.PORT ?? process.env.REMOTELAB_RELAY_PORT ?? 8787);
+const sharedSecret = process.env.REMOTELAB_RELAY_SHARED_SECRET;
 const rooms = new Map<string, Map<string, Peer>>();
 
 const server = http.createServer((request, response) => {
@@ -35,7 +35,7 @@ wss.on("connection", (socket, request) => {
   const role = url.searchParams.get("role") as PeerRole | null;
   const pairingCode = url.searchParams.get("pairingCode")?.trim();
   const deviceName = url.searchParams.get("deviceName")?.trim() || "Unknown device";
-  const providedSecret = request.headers["x-companion-relay-secret"] ?? url.searchParams.get("secret");
+  const providedSecret = request.headers["x-remotelab-relay-secret"] ?? url.searchParams.get("secret");
 
   if (sharedSecret && providedSecret !== sharedSecret) {
     socket.close(1008, "Invalid relay secret");
@@ -88,7 +88,7 @@ wss.on("connection", (socket, request) => {
 });
 
 server.listen(port, () => {
-  console.log(`Companion relay listening on :${port}`);
+  console.log(`RemoteLab relay listening on :${port}`);
 });
 
 const heartbeat = setInterval(() => {

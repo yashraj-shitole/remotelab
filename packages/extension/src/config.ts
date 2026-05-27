@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { randomId } from "@companion/shared";
+import { randomId } from "@remotelab/shared";
 
-export interface CompanionConfig {
+export interface RemoteLabConfig {
   relayUrl: string;
   relaySecret: string;
   pairingCode: string;
@@ -15,8 +15,8 @@ export interface CompanionConfig {
 
 let generatedPairingCode: string | undefined;
 
-export function getConfig(): CompanionConfig {
-  const config = vscode.workspace.getConfiguration("companion");
+export function getConfig(): RemoteLabConfig {
+  const config = vscode.workspace.getConfiguration("remotelab");
   return {
     relayUrl: config.get("relayUrl", "ws://localhost:8787/relay"),
     relaySecret: config.get("relaySecret", ""),

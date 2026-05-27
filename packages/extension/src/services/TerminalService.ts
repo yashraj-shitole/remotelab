@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { spawn, ChildProcessWithoutNullStreams } from "node:child_process";
 import { createRequire } from "node:module";
 import * as vscode from "vscode";
-import { TerminalBufferSnapshot, TerminalOutputEvent, TerminalSummary, TerminalKind, randomId } from "@companion/shared";
+import { TerminalBufferSnapshot, TerminalOutputEvent, TerminalSummary, TerminalKind, randomId } from "@remotelab/shared";
 import { getConfig } from "../config";
 import { toErrorMessage } from "../utils/errors";
 
@@ -79,7 +79,7 @@ export class TerminalService implements vscode.Disposable {
 
   async createManagedTerminal(options: { name?: string; cwd?: string; kind?: TerminalKind } = {}): Promise<TerminalSummary> {
     const id = `${options.kind === "copilot-cli" ? "copilot" : "managed"}:${randomId()}`;
-    const name = options.name ?? "Companion Terminal";
+    const name = options.name ?? "RemoteLab Terminal";
     const writeEmitter = new vscode.EventEmitter<string>();
     const closeEmitter = new vscode.EventEmitter<number | void>();
     const cwd = options.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? os.homedir();

@@ -1,5 +1,5 @@
 {
-  "name": "@companion/relay",
+  "name": "@remotelab/relay",
   "version": "0.1.0",
   "private": true,
   "main": "dist/server.js",
@@ -11,7 +11,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@companion/shared": "file:../shared",
+    "@remotelab/shared": "file:../shared",
     "ws": "^8.21.0"
   },
   "devDependencies": {

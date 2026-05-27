@@ -1,7 +1,7 @@
 {
-  "name": "vscode-mobile-copilot-companion",
-  "displayName": "Mobile Copilot Companion",
-  "description": "Control VS Code, terminals, tasks, diagnostics, git, and Copilot CLI sessions from a mobile companion app.",
+  "name": "remotelab-vscode",
+  "displayName": "RemoteLab",
+  "description": "Control VS Code, terminals, tasks, diagnostics, git, and Copilot CLI sessions from RemoteLab.",
   "version": "0.1.0",
   "publisher": "local",
   "private": true,
@@ -11,81 +11,81 @@
   "categories": ["Other"],
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:companion.connectRelay",
-    "onCommand:companion.disconnectRelay",
-    "onCommand:companion.showPairingCode",
-    "onCommand:companion.createManagedTerminal",
-    "onCommand:companion.continueCopilotCli"
+    "onCommand:remotelab.connectRelay",
+    "onCommand:remotelab.disconnectRelay",
+    "onCommand:remotelab.showPairingCode",
+    "onCommand:remotelab.createManagedTerminal",
+    "onCommand:remotelab.continueCopilotCli"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "companion.connectRelay",
-        "title": "Companion: Connect Cloud Relay"
+        "command": "remotelab.connectRelay",
+        "title": "RemoteLab: Connect Cloud Relay"
       },
       {
-        "command": "companion.disconnectRelay",
-        "title": "Companion: Disconnect Cloud Relay"
+        "command": "remotelab.disconnectRelay",
+        "title": "RemoteLab: Disconnect Cloud Relay"
       },
       {
-        "command": "companion.showPairingCode",
-        "title": "Companion: Show Pairing Code"
+        "command": "remotelab.showPairingCode",
+        "title": "RemoteLab: Show Pairing Code"
       },
       {
-        "command": "companion.createManagedTerminal",
-        "title": "Companion: Create Managed Terminal"
+        "command": "remotelab.createManagedTerminal",
+        "title": "RemoteLab: Create Managed Terminal"
       },
       {
-        "command": "companion.continueCopilotCli",
-        "title": "Companion: Continue Copilot CLI Session"
+        "command": "remotelab.continueCopilotCli",
+        "title": "RemoteLab: Continue Copilot CLI Session"
       }
     ],
     "configuration": {
-      "title": "Mobile Copilot Companion",
+      "title": "RemoteLab",
       "properties": {
-        "companion.relayUrl": {
+        "remotelab.relayUrl": {
           "type": "string",
           "default": "ws://localhost:8787/relay",
           "description": "Cloud relay WebSocket URL. Use wss:// in production."
         },
-        "companion.relaySecret": {
+        "remotelab.relaySecret": {
           "type": "string",
           "default": "",
           "description": "Optional relay admission secret. Treat as sensitive."
         },
-        "companion.pairingCode": {
+        "remotelab.pairingCode": {
           "type": "string",
           "default": "",
           "description": "Pairing code shared with the mobile app. If empty, the extension generates one per session."
         },
-        "companion.deviceName": {
+        "remotelab.deviceName": {
           "type": "string",
-          "default": "VS Code Workstation",
-          "description": "Name displayed to the mobile companion."
+          "default": "RemoteLab Workstation",
+          "description": "Name displayed to the mobile app."
         },
-        "companion.autoConnect": {
+        "remotelab.autoConnect": {
           "type": "boolean",
           "default": false,
           "description": "Connect to the relay when VS Code starts."
         },
-        "companion.copilotCliPath": {
+        "remotelab.copilotCliPath": {
           "type": "string",
           "default": "copilot",
           "description": "Command used to launch GitHub Copilot CLI."
         },
-        "companion.terminalShell": {
+        "remotelab.terminalShell": {
           "type": "string",
           "default": "",
           "description": "Shell used for managed terminals. Empty uses the platform default."
         },
-        "companion.terminalShellArgs": {
+        "remotelab.terminalShellArgs": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
           "description": "Arguments passed to the managed terminal shell."
         },
-        "companion.commandAllowlist": {
+        "remotelab.commandAllowlist": {
           "type": "array",
           "items": { "type": "string" },
           "default": [
@@ -109,7 +109,7 @@
     "package": "vsce package"
   },
   "dependencies": {
-    "@companion/shared": "file:../shared",
+    "@remotelab/shared": "file:../shared",
     "ws": "^8.21.0"
   },
   "optionalDependencies": {

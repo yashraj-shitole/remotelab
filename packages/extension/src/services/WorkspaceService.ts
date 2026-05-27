@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { ActiveEditor, FileMatch, WorkspaceSnapshot } from "@companion/shared";
+import { ActiveEditor, FileMatch, WorkspaceSnapshot } from "@remotelab/shared";
 import { DiagnosticsService } from "./DiagnosticsService";
 import { GitService } from "./GitService";
 import { TerminalService } from "./TerminalService";

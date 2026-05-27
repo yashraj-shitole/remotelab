@@ -1,7 +1,7 @@
 import WebSocket from "ws";
 import * as vscode from "vscode";
-import { createEnvelope, RelayEnvelope } from "@companion/shared";
-import { CompanionConfig } from "../config";
+import { createEnvelope, RelayEnvelope } from "@remotelab/shared";
+import { RemoteLabConfig } from "../config";
 import { toErrorMessage } from "../utils/errors";
 
 type EnvelopeHandler = (envelope: RelayEnvelope) => void | Promise<void>;
@@ -10,11 +10,11 @@ export class CloudRelayClient implements vscode.Disposable {
   private socket?: WebSocket;
   private reconnectTimer?: NodeJS.Timeout;
   private manuallyClosed = false;
-  private config: CompanionConfig;
+  private config: RemoteLabConfig;
 
   constructor(
     private readonly output: vscode.OutputChannel,
-    private readonly getConfig: () => CompanionConfig,
+    private readonly getConfig: () => RemoteLabConfig,
     private readonly onEnvelope: EnvelopeHandler
   ) {
     this.config = getConfig();
@@ -35,11 +35,11 @@ export class CloudRelayClient implements vscode.Disposable {
       url.searchParams.set("secret", this.config.relaySecret);
     }
 
-    this.output.appendLine(`Connecting companion relay: ${redactUrl(url)}`);
+    this.output.appendLine(`Connecting RemoteLab relay: ${redactUrl(url)}`);
     this.socket = new WebSocket(url);
 
     this.socket.on("open", () => {
-      this.output.appendLine("Companion relay connected.");
+      this.output.appendLine("RemoteLab relay connected.");
       this.send(createEnvelope("client.hello", { role: "extension", deviceName: this.config.deviceName }, { source: "extension", target: "all" }));
     });
 
@@ -53,14 +53,14 @@ export class CloudRelayClient implements vscode.Disposable {
     });
 
     this.socket.on("close", (code, reason) => {
-      this.output.appendLine(`Companion relay closed: ${code} ${reason.toString()}`);
+      this.output.appendLine(`RemoteLab relay closed: ${code} ${reason.toString()}`);
       if (!this.manuallyClosed) {
         this.scheduleReconnect();
       }
     });
 
     this.socket.on("error", (error) => {
-      this.output.appendLine(`Companion relay error: ${toErrorMessage(error)}`);
+      this.output.appendLine(`RemoteLab relay error: ${toErrorMessage(error)}`);
     });
   }
 

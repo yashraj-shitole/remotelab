@@ -1,4 +1,4 @@
-import { createEnvelope, CommandRequest, CommandResponse, RelayEnvelope } from "@companion/shared";
+import { createEnvelope, CommandRequest, CommandResponse, RelayEnvelope } from "@remotelab/shared";
 import { TerminalService } from "./TerminalService";
 import { CopilotCliService } from "./CopilotCliService";
 import { DiagnosticsService } from "./DiagnosticsService";

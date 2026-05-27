@@ -21,7 +21,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "allowedCommonJsDependencies": ["@companion/shared"],
+            "allowedCommonJsDependencies": ["@remotelab/shared"],
             "assets": [
               {
                 "glob": "**/*",

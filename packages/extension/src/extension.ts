@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { createEnvelope, TerminalOutputEvent } from "@companion/shared";
+import { createEnvelope, TerminalOutputEvent } from "@remotelab/shared";
 import { getConfig } from "./config";
 import { CloudRelayClient } from "./relay/CloudRelayClient";
 import { CommandRouter } from "./services/CommandRouter";
@@ -11,10 +11,10 @@ import { TerminalService } from "./services/TerminalService";
 import { VSCodeCommandService } from "./services/VSCodeCommandService";
 import { WorkspaceService } from "./services/WorkspaceService";
 
-let app: CompanionApp | undefined;
+let app: RemoteLabApp | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  app = new CompanionApp(context);
+  app = new RemoteLabApp(context);
   context.subscriptions.push(app);
   app.registerCommands();
 
@@ -27,8 +27,8 @@ export function deactivate(): void {
   app?.dispose();
 }
 
-class CompanionApp implements vscode.Disposable {
-  private readonly output = vscode.window.createOutputChannel("Mobile Companion");
+class RemoteLabApp implements vscode.Disposable {
+  private readonly output = vscode.window.createOutputChannel("RemoteLab");
   private readonly relay: CloudRelayClient;
   private readonly terminals: TerminalService;
   private readonly router: CommandRouter;
@@ -62,14 +62,14 @@ class CompanionApp implements vscode.Disposable {
 
   registerCommands(): void {
     this.disposables.push(
-      vscode.commands.registerCommand("companion.connectRelay", () => this.connectRelay()),
-      vscode.commands.registerCommand("companion.disconnectRelay", () => this.disconnectRelay()),
-      vscode.commands.registerCommand("companion.showPairingCode", () => this.showPairingCode()),
-      vscode.commands.registerCommand("companion.createManagedTerminal", async () => {
-        await this.terminals.createManagedTerminal({ name: "Companion Terminal" });
+      vscode.commands.registerCommand("remotelab.connectRelay", () => this.connectRelay()),
+      vscode.commands.registerCommand("remotelab.disconnectRelay", () => this.disconnectRelay()),
+      vscode.commands.registerCommand("remotelab.showPairingCode", () => this.showPairingCode()),
+      vscode.commands.registerCommand("remotelab.createManagedTerminal", async () => {
+        await this.terminals.createManagedTerminal({ name: "RemoteLab Terminal" });
         await this.router.pushSnapshot();
       }),
-      vscode.commands.registerCommand("companion.continueCopilotCli", async () => {
+      vscode.commands.registerCommand("remotelab.continueCopilotCli", async () => {
         const copilot = new CopilotCliService(this.terminals);
         await copilot.continueLatest();
         await this.router.pushSnapshot();
@@ -91,12 +91,12 @@ class CompanionApp implements vscode.Disposable {
   connectRelay(): void {
     this.relay.connect();
     const config = getConfig();
-    void vscode.window.showInformationMessage(`Companion relay connecting. Pairing code: ${config.pairingCode}`);
+    void vscode.window.showInformationMessage(`RemoteLab relay connecting. Pairing code: ${config.pairingCode}`);
   }
 
   disconnectRelay(): void {
     this.relay.disconnect();
-    void vscode.window.showInformationMessage("Companion relay disconnected.");
+    void vscode.window.showInformationMessage("RemoteLab relay disconnected.");
   }
 
   showPairingCode(): void {
@@ -104,7 +104,7 @@ class CompanionApp implements vscode.Disposable {
     this.output.show(true);
     this.output.appendLine(`Pairing code: ${config.pairingCode}`);
     this.output.appendLine(`Relay URL: ${config.relayUrl}`);
-    void vscode.window.showInformationMessage(`Companion pairing code: ${config.pairingCode}`);
+    void vscode.window.showInformationMessage(`RemoteLab pairing code: ${config.pairingCode}`);
   }
 
   dispose(): void {

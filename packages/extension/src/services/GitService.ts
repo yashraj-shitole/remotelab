@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import * as vscode from "vscode";
-import { GitStatusSnapshot } from "@companion/shared";
+import { GitStatusSnapshot } from "@remotelab/shared";
 
 const execFileAsync = promisify(execFile);
 

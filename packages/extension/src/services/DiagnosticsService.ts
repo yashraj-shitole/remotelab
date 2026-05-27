@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { DiagnosticItem, DiagnosticSnapshot } from "@companion/shared";
+import { DiagnosticItem, DiagnosticSnapshot } from "@remotelab/shared";
 
 export class DiagnosticsService {
   list(limit = 80): DiagnosticSnapshot {

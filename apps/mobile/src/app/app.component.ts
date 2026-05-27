@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { DiagnosticSnapshot, FileMatch, GitStatusSnapshot, TaskSummary, WorkspaceSnapshot } from "@companion/shared";
+import { DiagnosticSnapshot, FileMatch, GitStatusSnapshot, TaskSummary, WorkspaceSnapshot } from "@remotelab/shared";
 import { RelayClientService } from "./relay-client.service";
 import { TerminalPaneComponent } from "./terminal-pane.component";
 

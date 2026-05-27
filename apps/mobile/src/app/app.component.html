@@ -1,6 +1,6 @@
 <header class="top-nav">
   <button class="nav-link" type="button" (click)="setSection('workspace')">MENU</button>
-  <div class="wordmark">COMPANION</div>
+  <div class="wordmark">REMOTELAB</div>
   <button class="nav-link" type="button" (click)="connect()">PAIR</button>
 </header>
 
@@ -44,7 +44,7 @@
     </form>
   </section>
 
-  <nav class="section-tabs" aria-label="Companion sections">
+  <nav class="section-tabs" aria-label="RemoteLab sections">
     <button [class.active]="section() === 'ai'" type="button" (click)="setSection('ai')">AI</button>
     <button [class.active]="section() === 'terminal'" type="button" (click)="setSection('terminal')">TERMINALS</button>
     <button [class.active]="section() === 'workspace'" type="button" (click)="setSection('workspace')">WORKSPACE</button>

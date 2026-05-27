@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { TaskSummary } from "@companion/shared";
+import { TaskSummary } from "@remotelab/shared";
 
 export class TaskService {
   async list(): Promise<TaskSummary[]> {

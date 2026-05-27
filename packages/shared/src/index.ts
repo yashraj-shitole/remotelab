@@ -14,7 +14,7 @@ export interface RelayEnvelope<TPayload = unknown> {
   payload?: TPayload;
 }
 
-export type CompanionCommand =
+export type RemoteLabCommand =
   | "snapshot.get"
   | "terminal.list"
   | "terminal.create"
@@ -39,13 +39,13 @@ export type CompanionCommand =
   | "diagnostics.list";
 
 export interface CommandRequest<TArgs = Record<string, unknown>> {
-  command: CompanionCommand;
+  command: RemoteLabCommand;
   args?: TArgs;
 }
 
 export interface CommandResponse<TData = unknown> {
   ok: boolean;
-  command: CompanionCommand;
+  command: RemoteLabCommand;
   data?: TData;
   error?: {
     code: string;

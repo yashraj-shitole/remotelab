@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { TerminalSummary } from "@companion/shared";
+import { TerminalSummary } from "@remotelab/shared";
 import { getConfig } from "../config";
 import { TerminalService } from "./TerminalService";
 

@@ -2,18 +2,18 @@ import { Injectable, computed, signal } from "@angular/core";
 import {
   CommandRequest,
   CommandResponse,
-  CompanionCommand,
   createEnvelope,
   DiagnosticSnapshot,
   FileMatch,
   GitStatusSnapshot,
   RelayEnvelope,
+  RemoteLabCommand,
   TaskSummary,
   TerminalBufferSnapshot,
   TerminalOutputEvent,
   TerminalSummary,
   WorkspaceSnapshot
-} from "@companion/shared";
+} from "@remotelab/shared";
 
 type PendingRequest = {
   resolve: (value: unknown) => void;
@@ -28,7 +28,7 @@ export interface ConnectionSettings {
   deviceName: string;
 }
 
-const storedSettingsKey = "companion.connectionSettings";
+const storedSettingsKey = "remotelab.connectionSettings";
 
 @Injectable({ providedIn: "root" })
 export class RelayClientService {
@@ -134,7 +134,7 @@ export class RelayClientService {
     this.status.set("disconnected");
   }
 
-  async command<TData = unknown>(command: CompanionCommand, args: Record<string, unknown> = {}): Promise<TData> {
+  async command<TData = unknown>(command: RemoteLabCommand, args: Record<string, unknown> = {}): Promise<TData> {
     if (this.socket?.readyState !== WebSocket.OPEN) {
       throw new Error("Relay is not connected");
     }
