@@ -1,0 +1,21 @@
+{
+  "name": "vscode-mobile-copilot-companion-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/relay",
+    "packages/extension",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/shared && npm run build -w packages/relay && npm run build -w packages/extension && npm run build -w apps/mobile",
+    "check": "npm run check -w packages/shared && npm run build -w packages/shared && npm run check -w packages/relay && npm run check -w packages/extension && npm run check -w apps/mobile",
+    "dev:relay": "npm run dev -w @companion/relay",
+    "dev:mobile": "npm run start -w @companion/mobile",
+    "dev:extension": "npm run watch -w @companion/extension"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "name": "vscode-mobile-copilot-companion",
+  "displayName": "Mobile Copilot Companion",
+  "description": "Control VS Code, terminals, tasks, diagnostics, git, and Copilot CLI sessions from a mobile companion app.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:companion.connectRelay",
+    "onCommand:companion.disconnectRelay",
+    "onCommand:companion.showPairingCode",
+    "onCommand:companion.createManagedTerminal",
+    "onCommand:companion.continueCopilotCli"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "companion.connectRelay",
+        "title": "Companion: Connect Cloud Relay"
+      },
+      {
+        "command": "companion.disconnectRelay",
+        "title": "Companion: Disconnect Cloud Relay"
+      },
+      {
+        "command": "companion.showPairingCode",
+        "title": "Companion: Show Pairing Code"
+      },
+      {
+        "command": "companion.createManagedTerminal",
+        "title": "Companion: Create Managed Terminal"
+      },
+      {
+        "command": "companion.continueCopilotCli",
+        "title": "Companion: Continue Copilot CLI Session"
+      }
+    ],
+    "configuration": {
+      "title": "Mobile Copilot Companion",
+      "properties": {
+        "companion.relayUrl": {
+          "type": "string",
+          "default": "ws://localhost:8787/relay",
+          "description": "Cloud relay WebSocket URL. Use wss:// in production."
+        },
+        "companion.relaySecret": {
+          "type": "string",
+          "default": "",
+          "description": "Optional relay admission secret. Treat as sensitive."
+        },
+        "companion.pairingCode": {
+          "type": "string",
+          "default": "",
+          "description": "Pairing code shared with the mobile app. If empty, the extension generates one per session."
+        },
+        "companion.deviceName": {
+          "type": "string",
+          "default": "VS Code Workstation",
+          "description": "Name displayed to the mobile companion."
+        },
+        "companion.autoConnect": {
+          "type": "boolean",
+          "default": false,
+          "description": "Connect to the relay when VS Code starts."
+        },
+        "companion.copilotCliPath": {
+          "type": "string",
+          "default": "copilot",
+          "description": "Command used to launch GitHub Copilot CLI."
+        },
+        "companion.terminalShell": {
+          "type": "string",
+          "default": "",
+          "description": "Shell used for managed terminals. Empty uses the platform default."
+        },
+        "companion.terminalShellArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Arguments passed to the managed terminal shell."
+        },
+        "companion.commandAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "workbench.action.files.save",
+            "workbench.action.quickOpen",
+            "workbench.action.showCommands",
+            "workbench.action.problems.focus",
+            "workbench.action.terminal.new",
+            "workbench.action.tasks.runTask",
+            "git.openChange"
+          ],
+          "description": "VS Code command IDs the mobile app may invoke. Use * only on trusted personal setups."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "@companion/shared": "file:../shared",
+    "ws": "^8.21.0"
+  },
+  "optionalDependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.120.0",
+    "@types/ws": "^8.18.1",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.28.0"
+  }
+}

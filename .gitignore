@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+.angular/
+.vscode-test/
+*.vsix
+*.log
+.env
+.DS_Store
+Thumbs.db
