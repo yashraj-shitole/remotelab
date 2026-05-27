@@ -5,6 +5,7 @@ out/
 .vscode-test/
 *.vsix
 *.log
+.logs/
 .env
 certs/
 .DS_Store

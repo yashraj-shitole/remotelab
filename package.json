@@ -12,10 +12,15 @@
     "build": "npm run build -w packages/shared && npm run build -w packages/relay && npm run build -w packages/extension && npm run build -w apps/mobile",
     "check": "npm run check -w packages/shared && npm run build -w packages/shared && npm run check -w packages/relay && npm run check -w packages/extension && npm run check -w apps/mobile",
     "dev:relay": "npm run dev -w @remotelab/relay",
-    "dev:mobile": "npm run start -w @remotelab/mobile",
-    "dev:extension": "npm run watch -w remotelab-vscode"
+    "dev:mobile": "npm run start -w @remotelab/mobile --",
+    "dev:extension": "npm run watch -w remotelab-vscode",
+    "test:mobile-smoke": "node scripts/mobile-smoke.cjs"
   },
   "devDependencies": {
+    "playwright": "^1.60.0",
     "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
