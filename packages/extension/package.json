@@ -3,7 +3,7 @@
   "displayName": "RemoteLab",
   "description": "Control VS Code, terminals, tasks, diagnostics, git, and Copilot CLI sessions from RemoteLab.",
   "icon": "assets/icon.png",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "YashrajShitole",
   "engines": {
     "vscode": "^1.117.0"
