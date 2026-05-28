@@ -2,12 +2,14 @@
   display: block;
   min-height: 100vh;
   background: var(--color-canvas);
+  isolation: isolate;
 }
 
 .shell {
   width: min(100%, 1280px);
   margin: 0 auto;
   padding: var(--spacing-xl) var(--spacing-md) calc(var(--spacing-section) + 120px);
+  transition: background-color 280ms ease, color 280ms ease;
 }
 
 .shell.home-shell {
@@ -22,8 +24,61 @@
   text-transform: uppercase;
 }
 
+.theme-ripple-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+}
+
+.theme-ripple-layer::before {
+  content: "";
+  position: absolute;
+  left: var(--theme-ripple-x);
+  top: var(--theme-ripple-y);
+  width: var(--theme-ripple-size);
+  height: var(--theme-ripple-size);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.01);
+  transform-origin: center;
+  opacity: 0;
+  background: var(--theme-ripple-fill);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--theme-ripple-fill) 84%, transparent);
+  will-change: transform, opacity;
+}
+
+.theme-ripple-layer.active::before {
+  animation: theme-wave 760ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes theme-wave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.01);
+    opacity: 0;
+  }
+
+  16% {
+    opacity: 0.95;
+  }
+
+  68% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
 @media (min-width: 768px) {
   .shell {
     padding-inline: var(--spacing-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-ripple-layer.active::before {
+    animation-duration: 1ms;
   }
 }

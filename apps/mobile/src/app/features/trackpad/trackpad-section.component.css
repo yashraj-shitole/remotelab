@@ -30,9 +30,13 @@
   border-radius: 24px;
   overflow: hidden;
   background:
-    radial-gradient(130% 90% at 0% 0%, rgba(195, 217, 243, 0.2), transparent 58%),
-    radial-gradient(160% 100% at 100% 100%, rgba(255, 255, 255, 0.12), transparent 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
+    radial-gradient(130% 90% at 0% 0%, color-mix(in oklab, var(--color-link) 24%, transparent), transparent 58%),
+    radial-gradient(160% 100% at 100% 100%, color-mix(in oklab, var(--color-on-dark) 12%, transparent), transparent 64%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-on-dark) 8%, transparent),
+      color-mix(in oklab, var(--color-on-dark) 1%, transparent)
+    );
   touch-action: none;
   user-select: none;
 }
@@ -41,8 +45,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(transparent 95%, rgba(255, 255, 255, 0.05) 100%),
-    linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.05) 100%);
+    linear-gradient(transparent 95%, color-mix(in oklab, var(--color-on-dark) 7%, transparent) 100%),
+    linear-gradient(90deg, transparent 95%, color-mix(in oklab, var(--color-on-dark) 7%, transparent) 100%);
   background-size: 28px 28px;
   opacity: 0.52;
   pointer-events: none;
@@ -53,9 +57,14 @@
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.78), rgba(195, 217, 243, 0.35) 55%, rgba(0, 0, 0, 0.8) 100%);
-  box-shadow: 0 0 20px rgba(195, 217, 243, 0.6);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 72%, transparent);
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in oklab, var(--color-on-dark) 72%, transparent),
+    color-mix(in oklab, var(--color-link) 34%, transparent) 55%,
+    color-mix(in oklab, var(--color-canvas) 84%, transparent) 100%
+  );
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-link) 58%, transparent);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -88,8 +97,13 @@
   border: 1px solid var(--color-hairline-strong);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 36%, rgba(0, 0, 0, 0.42)),
-    rgba(12, 12, 12, 0.82);
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-on-dark) 12%, transparent),
+      color-mix(in oklab, var(--color-on-dark) 3%, transparent) 36%,
+      color-mix(in oklab, var(--color-canvas) 64%, transparent)
+    ),
+    color-mix(in oklab, var(--color-surface-card) 88%, transparent);
   min-height: 280px;
   touch-action: none;
   user-select: none;
@@ -103,7 +117,7 @@
   width: 4px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: color-mix(in oklab, var(--color-on-dark) 18%, transparent);
 }
 
 .scroll-thumb {
@@ -113,9 +127,9 @@
   height: 34px;
   transform: translate(-50%, -50%);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: rgba(195, 217, 243, 0.34);
-  box-shadow: 0 8px 26px rgba(195, 217, 243, 0.2);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 40%, transparent);
+  background: color-mix(in oklab, var(--color-link) 36%, transparent);
+  box-shadow: 0 8px 26px color-mix(in oklab, var(--color-link) 24%, transparent);
 }
 
 .scroll-strip p {

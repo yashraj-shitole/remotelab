@@ -12,16 +12,21 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 24%, transparent);
   border-radius: 9999px;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.07) 30%, rgba(10, 10, 10, 0.45) 100%),
-    radial-gradient(130% 130% at 0% 100%, rgba(195, 217, 243, 0.3), transparent 58%),
-    rgba(4, 4, 4, 0.55);
+    linear-gradient(
+      120deg,
+      color-mix(in oklab, var(--color-on-dark) 20%, transparent) 0%,
+      color-mix(in oklab, var(--color-on-dark) 7%, transparent) 30%,
+      color-mix(in oklab, var(--color-canvas) 64%, transparent) 100%
+    ),
+    radial-gradient(130% 130% at 0% 100%, color-mix(in oklab, var(--color-link) 28%, transparent), transparent 58%),
+    color-mix(in oklab, var(--color-surface-card) 86%, transparent);
   box-shadow:
-    0 20px 44px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    0 20px 44px color-mix(in oklab, var(--color-canvas) 68%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--color-on-dark) 24%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--color-on-dark) 5%, transparent);
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
 }
@@ -39,7 +44,7 @@
   font-size: 11px;
   letter-spacing: 1.9px;
   text-transform: uppercase;
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition: transform 120ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
 .pill-item small {
@@ -49,9 +54,13 @@
 }
 
 .pill-item.active {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.14);
+  border-color: color-mix(in oklab, var(--color-on-dark) 38%, transparent);
+  background: color-mix(in oklab, var(--color-on-dark) 14%, transparent);
   color: var(--color-on-dark);
+}
+
+.pill-item:hover {
+  border-color: color-mix(in oklab, var(--color-link) 48%, transparent);
 }
 
 .pill-item.active small {

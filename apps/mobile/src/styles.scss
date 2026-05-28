@@ -2,21 +2,29 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=IBM+Plex+Mono:wght@400&family=Saira+Condensed:wght@400&display=swap");
 
 :root {
+  color-scheme: dark;
   --color-primary: #ffffff;
-  --color-link: #c3d9f3;
-  --color-canvas: #000000;
-  --color-surface-soft: #0d0d0d;
-  --color-surface-card: #141414;
-  --color-surface-elevated: #1f1f1f;
-  --color-hairline: #262626;
-  --color-hairline-strong: #3a3a3a;
-  --color-on-dark: #ffffff;
-  --color-body: #cccccc;
-  --color-body-strong: #e6e6e6;
-  --color-muted: #999999;
-  --color-muted-soft: #666666;
-  --color-warning: #d4a017;
-  --color-success: #5fa657;
+  --color-link: #8ec5ff;
+  --color-canvas: #05070d;
+  --color-surface-soft: #0d1320;
+  --color-surface-card: #131b2c;
+  --color-surface-elevated: #1d2a41;
+  --color-surface-overlay: rgba(8, 12, 20, 0.92);
+  --color-surface-modal: rgba(12, 18, 30, 0.96);
+  --color-surface-subtle: rgba(255, 255, 255, 0.03);
+  --color-hairline: #25324b;
+  --color-hairline-strong: #3a4b6f;
+  --color-on-dark: #eef3ff;
+  --color-body: #c3cfe5;
+  --color-body-strong: #deebff;
+  --color-muted: #93a2bf;
+  --color-muted-soft: #6b7b9a;
+  --color-warning: #d7a43a;
+  --color-success: #58b87d;
+  --color-ink-muted: #9badcb;
+
+  --shadow-soft: 0 18px 42px rgba(2, 5, 10, 0.4);
+  --shadow-strong: 0 24px 60px rgba(0, 0, 0, 0.45);
 
   --font-display: "Saira Condensed", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-text: "Cormorant Garamond", Garamond, "Times New Roman", serif;
@@ -32,10 +40,41 @@
   --spacing-section: 120px;
   --rounded-none: 0;
   --rounded-pill: 9999px;
+
+  --motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-mid: 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-primary: #101625;
+  --color-link: #1f5fbb;
+  --color-canvas: #f4f7ff;
+  --color-surface-soft: #ffffff;
+  --color-surface-card: #edf3ff;
+  --color-surface-elevated: #e2eaf8;
+  --color-surface-overlay: rgba(244, 247, 255, 0.92);
+  --color-surface-modal: rgba(250, 252, 255, 0.96);
+  --color-surface-subtle: rgba(16, 22, 37, 0.04);
+  --color-hairline: #ccd8ec;
+  --color-hairline-strong: #a8bbdb;
+  --color-on-dark: #111b2f;
+  --color-body: #2f3c56;
+  --color-body-strong: #1c2840;
+  --color-muted: #5f6f8d;
+  --color-muted-soft: #8d9bb5;
+  --color-warning: #a96500;
+  --color-success: #2e8a53;
+  --color-ink-muted: #5f7197;
+
+  --shadow-soft: 0 18px 36px rgba(81, 104, 148, 0.2);
+  --shadow-strong: 0 22px 56px rgba(65, 86, 126, 0.24);
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-link) 38%, transparent) transparent;
 }
 
 html,
@@ -44,12 +83,21 @@ body {
   margin: 0;
   background: var(--color-canvas);
   color: var(--color-on-dark);
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-text);
   font-weight: 400;
   line-height: 1.5;
+  background:
+    radial-gradient(140% 120% at 0% 0%, color-mix(in oklab, var(--color-link) 16%, transparent), transparent 60%),
+    radial-gradient(120% 120% at 100% 100%, color-mix(in oklab, var(--color-warning) 10%, transparent), transparent 66%),
+    var(--color-canvas);
 }
 
 button,
@@ -60,4 +108,82 @@ textarea {
 
 button {
   color: inherit;
+}
+
+button,
+a.button-primary,
+.text-link,
+.panel-link,
+.pill-item,
+.row-button {
+  transition:
+    transform var(--motion-fast),
+    background-color var(--motion-mid),
+    border-color var(--motion-mid),
+    color var(--motion-mid),
+    box-shadow var(--motion-mid),
+    filter var(--motion-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover,
+  a.button-primary:hover,
+  .text-link:hover,
+  .panel-link:hover,
+  .pill-item:hover,
+  .row-button:hover {
+    transform: translateY(-1px);
+    filter: saturate(1.06);
+  }
+}
+
+button:not(:disabled):active,
+a.button-primary:active,
+.text-link:active,
+.panel-link:active,
+.pill-item:active,
+.row-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--color-link) 70%, var(--color-on-dark) 30%);
+  outline-offset: 2px;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background: color-mix(in oklab, var(--color-link) 34%, transparent);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--color-link) 52%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }

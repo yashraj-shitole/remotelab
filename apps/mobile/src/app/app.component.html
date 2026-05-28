@@ -1,8 +1,20 @@
 <app-top-nav
   [connected]="relay.status() === 'connected'"
+  [theme]="theme()"
   (menuAction)="setSection('home')"
-  (pairAction)="openPairingPopup()">
+  (pairAction)="openPairingPopup()"
+  (themeAction)="toggleTheme($event)">
 </app-top-nav>
+
+<div
+  class="theme-ripple-layer"
+  [class.active]="themeRippleActive()"
+  [style.--theme-ripple-x.px]="themeRippleX()"
+  [style.--theme-ripple-y.px]="themeRippleY()"
+  [style.--theme-ripple-size.px]="themeRippleSize()"
+  [style.--theme-ripple-fill]="themeRippleFill()"
+  aria-hidden="true">
+</div>
 
 @if (pairingPopupOpen()) {
   <app-pairing-popup

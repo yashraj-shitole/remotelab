@@ -34,7 +34,11 @@ type PairingLinkPayload = {
   autoConnect?: unknown;
 };
 
+type ThemeMode = "dark" | "light";
+type ThemeOrigin = Pick<MouseEvent, "clientX" | "clientY">;
+
 const pairingParamNames = ["pair", "relayUrl", "pairingCode", "relaySecret", "autoConnect"];
+const themePreferenceStorageKey = "remotelab-theme";
 
 @Component({
   selector: "app-root",
@@ -68,9 +72,17 @@ export class AppComponent {
   readonly selectedFile = signal<FileContentSnapshot | undefined>(undefined);
   readonly filePreviewLoading = signal(false);
   readonly fileSaveLoading = signal(false);
+  readonly theme = signal<ThemeMode>(this.loadThemePreference());
+  readonly themeRippleActive = signal(false);
+  readonly themeRippleX = signal(0);
+  readonly themeRippleY = signal(0);
+  readonly themeRippleSize = signal(0);
+  readonly themeRippleFill = signal("#f4f7ff");
 
   private pendingTrackpadMove: TrackpadMoveRequest | undefined;
   private trackpadMoveInFlight = false;
+  private themeCommitTimer: number | undefined;
+  private themeRippleCleanupTimer: number | undefined;
 
   readonly statusLabel = computed(() => this.relay.status().toUpperCase());
   readonly workspaceName = computed(() => this.relay.snapshot()?.workspaceName ?? "NO WORKSPACE");
@@ -89,6 +101,9 @@ export class AppComponent {
     if (!pairingApplied) {
       this.tryReconnectFromStoredSettings();
     }
+
+    this.applyTheme(this.theme());
+    this.destroyRef.onDestroy(() => this.clearThemeTimers());
   }
 
   connect(): void {
@@ -123,19 +138,71 @@ export class AppComponent {
     void this.router.navigate([section]);
   }
 
+  toggleTheme(origin?: ThemeOrigin): void {
+    const nextTheme: ThemeMode = this.theme() === "dark" ? "light" : "dark";
+
+    if (typeof window === "undefined") {
+      this.applyTheme(nextTheme);
+      return;
+    }
+
+    const rippleOrigin = this.resolveThemeOrigin(origin);
+    this.themeRippleX.set(rippleOrigin.x);
+    this.themeRippleY.set(rippleOrigin.y);
+    this.themeRippleSize.set(this.resolveRippleSize(rippleOrigin.x, rippleOrigin.y));
+    this.themeRippleFill.set(nextTheme === "light" ? "#f4f7ff" : "#04070e");
+
+    this.themeRippleActive.set(false);
+    window.requestAnimationFrame(() => this.themeRippleActive.set(true));
+
+    this.clearThemeTimers();
+    this.themeCommitTimer = window.setTimeout(() => this.applyTheme(nextTheme), 130);
+    this.themeRippleCleanupTimer = window.setTimeout(() => this.themeRippleActive.set(false), 760);
+  }
+
   async continueCopilot(): Promise<void> {
-    const terminal = await this.relay.command<{ id: string }>("copilot.continue");
-    this.relay.selectTerminal(terminal.id);
+    if (!this.ensureRelayConnected("continue Copilot")) {
+      return;
+    }
+
+    try {
+      const terminal = await this.relay.command<{ id: string }>("copilot.continue");
+      this.relay.selectTerminal(terminal.id);
+      this.relay.lastError.set("");
+      this.setSection("ai");
+    } catch (error) {
+      this.relay.lastError.set(this.resolveCommandError(error, "Unable to continue Copilot."));
+    }
   }
 
   async resumeCopilot(): Promise<void> {
-    const terminal = await this.relay.command<{ id: string }>("copilot.resume");
-    this.relay.selectTerminal(terminal.id);
+    if (!this.ensureRelayConnected("resume Copilot")) {
+      return;
+    }
+
+    try {
+      const terminal = await this.relay.command<{ id: string }>("copilot.resume");
+      this.relay.selectTerminal(terminal.id);
+      this.relay.lastError.set("");
+      this.setSection("ai");
+    } catch (error) {
+      this.relay.lastError.set(this.resolveCommandError(error, "Unable to resume Copilot."));
+    }
   }
 
   async newCopilot(): Promise<void> {
-    const terminal = await this.relay.command<{ id: string }>("copilot.new");
-    this.relay.selectTerminal(terminal.id);
+    if (!this.ensureRelayConnected("start a new Copilot session")) {
+      return;
+    }
+
+    try {
+      const terminal = await this.relay.command<{ id: string }>("copilot.new");
+      this.relay.selectTerminal(terminal.id);
+      this.relay.lastError.set("");
+      this.setSection("ai");
+    } catch (error) {
+      this.relay.lastError.set(this.resolveCommandError(error, "Unable to start a new Copilot session."));
+    }
   }
 
   sendPrompt(): void {
@@ -149,8 +216,18 @@ export class AppComponent {
   }
 
   async createTerminal(): Promise<void> {
-    const terminal = await this.relay.command<{ id: string }>("terminal.create", { name: "Phone Terminal" });
-    this.relay.selectTerminal(terminal.id);
+    if (!this.ensureRelayConnected("create a terminal")) {
+      return;
+    }
+
+    try {
+      const terminal = await this.relay.command<{ id: string }>("terminal.create", { name: "Phone Terminal" });
+      this.relay.selectTerminal(terminal.id);
+      this.relay.lastError.set("");
+      this.setSection("terminal");
+    } catch (error) {
+      this.relay.lastError.set(this.resolveCommandError(error, "Unable to create a terminal."));
+    }
   }
 
   selectTerminal(id: string): void {
@@ -493,6 +570,90 @@ export class AppComponent {
     window.history.replaceState(window.history.state, "", nextUrl);
   }
 
+  private loadThemePreference(): ThemeMode {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+
+    const storedPreference = window.localStorage.getItem(themePreferenceStorageKey);
+    if (storedPreference === "light" || storedPreference === "dark") {
+      return storedPreference;
+    }
+
+    const prefersLight = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: light)").matches;
+    return prefersLight ? "light" : "dark";
+  }
+
+  private applyTheme(theme: ThemeMode): void {
+    this.theme.set(theme);
+
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.body?.setAttribute("data-theme", theme);
+    }
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(themePreferenceStorageKey, theme);
+    }
+  }
+
+  private resolveThemeOrigin(origin?: ThemeOrigin): { x: number; y: number } {
+    if (
+      origin
+      && Number.isFinite(origin.clientX)
+      && Number.isFinite(origin.clientY)
+      && origin.clientX >= 0
+      && origin.clientY >= 0
+    ) {
+      return {
+        x: origin.clientX,
+        y: origin.clientY
+      };
+    }
+
+    if (typeof window === "undefined") {
+      return { x: 0, y: 0 };
+    }
+
+    return {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    };
+  }
+
+  private resolveRippleSize(originX: number, originY: number): number {
+    if (typeof window === "undefined") {
+      return 0;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxDistance = Math.max(
+      Math.hypot(originX, originY),
+      Math.hypot(viewportWidth - originX, originY),
+      Math.hypot(originX, viewportHeight - originY),
+      Math.hypot(viewportWidth - originX, viewportHeight - originY)
+    );
+
+    return Math.ceil(maxDistance * 2 + 64);
+  }
+
+  private clearThemeTimers(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (this.themeCommitTimer !== undefined) {
+      window.clearTimeout(this.themeCommitTimer);
+      this.themeCommitTimer = undefined;
+    }
+
+    if (this.themeRippleCleanupTimer !== undefined) {
+      window.clearTimeout(this.themeRippleCleanupTimer);
+      this.themeRippleCleanupTimer = undefined;
+    }
+  }
+
   private sectionFromUrl(url: string): AppSection {
     const segment = url.split("?")[0].split("#")[0].replace(/^\/+/, "").split("/")[0];
     if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai" || segment === "trackpad") {
@@ -520,5 +681,19 @@ export class AppComponent {
 
   private isRelayConnected(): boolean {
     return this.relay.status() === "connected";
+  }
+
+  private ensureRelayConnected(action: string): boolean {
+    if (this.isRelayConnected()) {
+      return true;
+    }
+
+    this.relay.lastError.set(`Connect your relay first to ${action}.`);
+    this.openPairingPopup();
+    return false;
+  }
+
+  private resolveCommandError(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message ? error.message : fallback;
   }
 }

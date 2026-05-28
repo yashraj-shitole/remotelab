@@ -118,7 +118,7 @@
   min-height: 280px;
   height: clamp(280px, 42vh, 520px);
   border: 1px solid var(--color-hairline);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-subtle);
 }
 
 .monaco-host {

@@ -5,16 +5,16 @@
   display: grid;
   place-items: center;
   padding: var(--spacing-md);
-  background: rgba(0, 0, 0, 0.8);
+  background: color-mix(in oklab, var(--color-canvas) 70%, transparent);
   backdrop-filter: blur(4px);
 }
 
 .pairing-modal {
   width: min(100%, 560px);
   border: 1px solid var(--color-hairline-strong);
-  background: rgba(10, 10, 10, 0.96);
+  background: var(--color-surface-modal);
   padding: var(--spacing-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-strong);
 }
 
 .pairing-header {

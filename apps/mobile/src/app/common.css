@@ -63,6 +63,12 @@ p {
   font-size: 14px;
   line-height: 1;
   letter-spacing: 2.5px;
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    border-color var(--motion-mid),
+    background-color var(--motion-mid),
+    box-shadow var(--motion-mid);
 }
 
 .button-primary {
@@ -72,6 +78,23 @@ p {
 .button-primary.danger {
   border-color: var(--color-warning);
   color: var(--color-warning);
+}
+
+.button-primary:hover,
+.button-icon:hover {
+  border-color: color-mix(in oklab, var(--color-link) 52%, var(--color-on-dark));
+  background: color-mix(in oklab, var(--color-link) 10%, transparent);
+}
+
+.button-primary:active,
+.button-icon:active {
+  transform: scale(0.98);
+}
+
+.button-primary:disabled,
+.button-icon:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .button-icon {
@@ -87,6 +110,8 @@ p {
   padding: var(--spacing-lg) 0;
   border-top: 1px solid var(--color-hairline);
   border-bottom: 1px solid var(--color-hairline);
+  background: color-mix(in oklab, var(--color-surface-card) 28%, transparent);
+  transition: border-color var(--motion-mid), background-color var(--motion-mid);
 }
 
 .shell > :first-child :is(.connection, .panel, .activity) {
@@ -152,6 +177,7 @@ textarea:focus {
   font-family: var(--font-text);
   font-size: 16px;
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .mono,

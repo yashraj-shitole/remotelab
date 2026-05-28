@@ -1,5 +1,7 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 
+type ThemeMode = "dark" | "light";
+
 @Component({
   selector: "app-top-nav",
   standalone: true,
@@ -10,6 +12,13 @@ import { Component, EventEmitter, Input, Output } from "@angular/core";
       <div class="wordmark">REMOTELAB</div>
       <div class="nav-actions">
         <button class="nav-link" type="button" (click)="pairAction.emit()">PAIR</button>
+        <button
+          class="nav-link theme-toggle"
+          type="button"
+          [attr.aria-label]="theme === 'dark' ? 'Switch to white theme' : 'Switch to dark theme'"
+          (click)="themeAction.emit($event)">
+          {{ theme === "dark" ? "WHITE" : "DARK" }}
+        </button>
         <span
           class="status-dot"
           [class.connected]="connected"
@@ -23,6 +32,8 @@ import { Component, EventEmitter, Input, Output } from "@angular/core";
 })
 export class TopNavComponent {
   @Input() connected = false;
+  @Input() theme: ThemeMode = "dark";
   @Output() menuAction = new EventEmitter<void>();
   @Output() pairAction = new EventEmitter<void>();
+  @Output() themeAction = new EventEmitter<MouseEvent>();
 }

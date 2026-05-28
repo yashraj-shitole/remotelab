@@ -9,13 +9,18 @@
   position: relative;
   overflow: clip;
   padding: clamp(24px, 6vw, 64px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 22%, transparent);
   background:
-    linear-gradient(156deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 45%, rgba(0, 0, 0, 0.38) 100%),
-    #060606;
+    linear-gradient(
+      156deg,
+      color-mix(in oklab, var(--color-on-dark) 6%, transparent) 0%,
+      color-mix(in oklab, var(--color-on-dark) 3%, transparent) 45%,
+      color-mix(in oklab, var(--color-canvas) 72%, transparent) 100%
+    ),
+    var(--color-surface-soft);
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    0 24px 48px color-mix(in oklab, var(--color-canvas) 74%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--color-on-dark) 14%, transparent);
 }
 
 .feature-grid,
@@ -27,9 +32,9 @@
 .landing {
   margin-top: 0;
   background:
-    radial-gradient(120% 110% at 0% 0%, rgba(122, 178, 235, 0.24), transparent 56%),
-    radial-gradient(120% 120% at 100% 100%, rgba(212, 160, 23, 0.2), transparent 58%),
-    linear-gradient(150deg, #050505 0%, #0a0a0a 52%, #101010 100%);
+    radial-gradient(120% 110% at 0% 0%, color-mix(in oklab, var(--color-link) 30%, transparent), transparent 56%),
+    radial-gradient(120% 120% at 100% 100%, color-mix(in oklab, var(--color-warning) 22%, transparent), transparent 58%),
+    linear-gradient(150deg, color-mix(in oklab, var(--color-canvas) 90%, var(--color-surface-soft)) 0%, var(--color-surface-soft) 52%, var(--color-surface-card) 100%);
 }
 
 .orb {
@@ -44,7 +49,7 @@
   left: -36px;
   width: 180px;
   height: 180px;
-  background: rgba(76, 178, 255, 0.24);
+  background: color-mix(in oklab, var(--color-link) 32%, transparent);
   animation: drift 9s ease-in-out infinite alternate;
 }
 
@@ -53,7 +58,7 @@
   bottom: -70px;
   width: 220px;
   height: 220px;
-  background: rgba(255, 198, 82, 0.16);
+  background: color-mix(in oklab, var(--color-warning) 24%, transparent);
   animation: drift 11s ease-in-out infinite alternate-reverse;
 }
 
@@ -62,8 +67,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(color-mix(in oklab, var(--color-on-dark) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--color-on-dark) 6%, transparent) 1px, transparent 1px);
   background-size: 36px 36px;
   opacity: 0.38;
   mask-image: radial-gradient(circle at 50% 40%, black 35%, transparent 100%);
@@ -114,11 +119,11 @@
 .button-primary.solid {
   border-color: transparent;
   background: var(--color-on-dark);
-  color: #090909;
+  color: var(--color-canvas);
 }
 
 .button-primary.ghost {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklab, var(--color-on-dark) 10%, transparent);
 }
 
 .status-strip {
@@ -130,8 +135,8 @@
 
 .status-chip {
   padding: var(--spacing-md);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 20%, transparent);
+  background: color-mix(in oklab, var(--color-canvas) 58%, transparent);
 }
 
 .status-chip .mono {
@@ -151,10 +156,14 @@
 }
 
 .hero-panel {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 20%, transparent);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(7, 7, 7, 0.76) 100%),
-    #080808;
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-on-dark) 10%, transparent) 0%,
+      color-mix(in oklab, var(--color-canvas) 76%, transparent) 100%
+    ),
+    var(--color-surface-card);
   padding: clamp(18px, 3.5vw, 28px);
 }
 
@@ -165,8 +174,8 @@
 .terminal-preview {
   margin-top: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.48);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 18%, transparent);
+  background: color-mix(in oklab, var(--color-canvas) 64%, transparent);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 1.4px;
@@ -176,7 +185,7 @@
 .terminal-preview p {
   margin: 0;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-on-dark) 12%, transparent);
   color: var(--color-body-strong);
 }
 
@@ -185,7 +194,7 @@
 }
 
 .terminal-preview span {
-  color: #7ab2eb;
+  color: var(--color-link);
   margin-right: 8px;
 }
 
@@ -213,8 +222,8 @@
 .feature-card,
 .step-card {
   padding: var(--spacing-lg);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid color-mix(in oklab, var(--color-on-dark) 16%, transparent);
+  background: color-mix(in oklab, var(--color-canvas) 56%, transparent);
 }
 
 .feature-card h2,
