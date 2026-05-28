@@ -169,7 +169,8 @@ export class RelayClientService {
     if (!terminalId) {
       return;
     }
-    void this.command("terminal.input", { terminalId, data });
+
+    this.sendCommandWithoutResponse("terminal.input", { terminalId, data });
   }
 
   async loadTerminalBuffer(terminalId = this.activeTerminalId()): Promise<void> {
@@ -202,13 +203,21 @@ export class RelayClientService {
       return;
     }
 
-    void this.command("terminal.resize", { terminalId, columns, rows }).catch(() => undefined);
+    this.sendCommandWithoutResponse("terminal.resize", { terminalId, columns, rows });
   }
 
   private send(envelope: RelayEnvelope): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(envelope));
     }
+  }
+
+  private sendCommandWithoutResponse(command: RemoteLabCommand, args: Record<string, unknown>): void {
+    if (this.socket?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    this.send(createEnvelope<CommandRequest>("command.request", { command, args }, { source: "mobile", target: "extension" }));
   }
 
   private handleMessage(data: string): void {

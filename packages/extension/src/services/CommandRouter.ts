@@ -1,4 +1,4 @@
-import { createEnvelope, CommandRequest, CommandResponse, RelayEnvelope } from "@remotelab/shared";
+import { createEnvelope, CommandRequest, CommandResponse, RelayEnvelope, RemoteLabCommand } from "@remotelab/shared";
 import { TerminalService } from "./TerminalService";
 import { CopilotCliService } from "./CopilotCliService";
 import { DiagnosticsService } from "./DiagnosticsService";
@@ -47,7 +47,7 @@ export class CommandRouter {
         data
       });
 
-      if (request.command !== "snapshot.get" && !request.command.startsWith("trackpad.")) {
+      if (this.shouldPushSnapshot(request.command)) {
         await this.pushSnapshot();
       }
     } catch (error) {
@@ -148,6 +148,23 @@ export class CommandRouter {
       target: "mobile",
       requestId: requestEnvelope.id
     }));
+  }
+
+  private shouldPushSnapshot(command: RemoteLabCommand): boolean {
+    if (command === "snapshot.get") {
+      return false;
+    }
+
+    if (command.startsWith("trackpad.")) {
+      return false;
+    }
+
+    // High-frequency terminal events already stream incremental updates.
+    if (command === "terminal.input" || command === "terminal.resize") {
+      return false;
+    }
+
+    return true;
   }
 }
 
