@@ -14,7 +14,8 @@
     "dev:relay": "npm run dev -w @remotelab/relay",
     "dev:mobile": "npm run start -w @remotelab/mobile --",
     "dev:extension": "npm run watch -w remotelab-vscode",
-    "test:mobile-smoke": "node scripts/mobile-smoke.cjs"
+    "test:mobile-smoke": "node scripts/mobile-smoke.cjs",
+    "ci:deploy:frontend": "npx vercel pull --yes --environment=production && npx vercel build --prod && npx vercel deploy --prebuilt --prod"
   },
   "devDependencies": {
     "playwright": "^1.60.0",
