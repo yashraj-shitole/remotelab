@@ -57,7 +57,7 @@ export class RelayClientService {
 
   loadSettings(): ConnectionSettings {
     const fallback: ConnectionSettings = {
-      relayUrl: "ws://localhost:8787/relay",
+      relayUrl: "wss://remotelab-relay.onrender.com/relay",
       pairingCode: "",
       relaySecret: "",
       deviceName: "Phone"

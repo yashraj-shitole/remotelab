@@ -48,7 +48,7 @@ type ConnectionSettingKey = "relayUrl" | "pairingCode" | "relaySecret" | "device
 })
 export class PairingPopupComponent {
   @Input() settings: ConnectionSettings = {
-    relayUrl: "ws://localhost:8787/relay",
+    relayUrl: "wss://remotelab-relay.onrender.com/relay",
     pairingCode: "",
     relaySecret: "",
     deviceName: "Phone"

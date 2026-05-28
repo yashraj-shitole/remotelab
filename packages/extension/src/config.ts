@@ -18,7 +18,7 @@ let generatedPairingCode: string | undefined;
 export function getConfig(): RemoteLabConfig {
   const config = vscode.workspace.getConfiguration("remotelab");
   return {
-    relayUrl: config.get("relayUrl", "ws://localhost:8787/relay"),
+    relayUrl: config.get("relayUrl", "wss://remotelab-relay.onrender.com/relay"),
     relaySecret: config.get("relaySecret", ""),
     pairingCode: config.get("pairingCode", "") || getGeneratedPairingCode(),
     deviceName: config.get("deviceName", "VS Code Workstation"),

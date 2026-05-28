@@ -46,7 +46,7 @@
       "properties": {
         "remotelab.relayUrl": {
           "type": "string",
-          "default": "ws://localhost:8787/relay",
+          "default": "wss://remotelab-relay.onrender.com/relay",
           "description": "Cloud relay WebSocket URL. Use wss:// in production."
         },
         "remotelab.relaySecret": {
