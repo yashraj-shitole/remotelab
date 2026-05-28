@@ -159,14 +159,6 @@ export class RelayClientService {
     return promise;
   }
 
-  commandNoWait(command: RemoteLabCommand, args: Record<string, unknown> = {}): void {
-    if (this.socket?.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    this.send(createEnvelope<CommandRequest>("command.request", { command, args }, { source: "mobile", target: "extension" }));
-  }
-
   selectTerminal(id: string): void {
     this.activeTerminalId.set(id);
     void this.loadTerminalBuffer(id);

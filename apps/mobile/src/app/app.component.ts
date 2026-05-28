@@ -60,10 +60,7 @@ export class AppComponent {
   readonly filePreviewLoading = signal(false);
 
   private pendingTrackpadMove: TrackpadMoveRequest | undefined;
-  private trackpadMoveFlushTimer: number | undefined;
-
-  private readonly trackpadMoveDispatchDelayMs = 12;
-  private readonly maxTrackpadDeltaPerDispatch = 180;
+  private trackpadMoveInFlight = false;
 
   readonly statusLabel = computed(() => this.relay.status().toUpperCase());
   readonly workspaceName = computed(() => this.relay.snapshot()?.workspaceName ?? "NO WORKSPACE");
@@ -232,7 +229,9 @@ export class AppComponent {
       this.pendingTrackpadMove = { deltaX: delta.deltaX, deltaY: delta.deltaY };
     }
 
-    this.scheduleTrackpadMoveFlush();
+    if (!this.trackpadMoveInFlight) {
+      void this.flushTrackpadMoveQueue();
+    }
   }
 
   sendTrackpadScroll(payload: TrackpadScrollRequest): void {
@@ -240,7 +239,7 @@ export class AppComponent {
       return;
     }
 
-    this.relay.commandNoWait("trackpad.scroll", { deltaY: payload.deltaY });
+    void this.relay.command("trackpad.scroll", { deltaY: payload.deltaY });
   }
 
   sendTrackpadClick(button: TrackpadClickRequest["button"]): void {
@@ -278,44 +277,24 @@ export class AppComponent {
     return "home";
   }
 
-  private scheduleTrackpadMoveFlush(): void {
-    if (this.trackpadMoveFlushTimer !== undefined) {
-      return;
-    }
+  private async flushTrackpadMoveQueue(): Promise<void> {
+    this.trackpadMoveInFlight = true;
 
-    this.trackpadMoveFlushTimer = window.setTimeout(() => {
-      this.trackpadMoveFlushTimer = undefined;
-      this.flushTrackpadMove();
-    }, this.trackpadMoveDispatchDelayMs);
-  }
-
-  private flushTrackpadMove(): void {
-    if (!this.isRelayConnected()) {
+    while (this.pendingTrackpadMove && this.isRelayConnected()) {
+      const delta = this.pendingTrackpadMove;
       this.pendingTrackpadMove = undefined;
-      return;
+
+      try {
+        await this.relay.command("trackpad.move", { deltaX: delta.deltaX, deltaY: delta.deltaY });
+      } catch {
+        break;
+      }
     }
 
-    const delta = this.pendingTrackpadMove;
-    if (!delta) {
-      return;
-    }
-
-    this.pendingTrackpadMove = undefined;
-    this.relay.commandNoWait("trackpad.move", {
-      deltaX: clamp(delta.deltaX, -this.maxTrackpadDeltaPerDispatch, this.maxTrackpadDeltaPerDispatch),
-      deltaY: clamp(delta.deltaY, -this.maxTrackpadDeltaPerDispatch, this.maxTrackpadDeltaPerDispatch)
-    });
-
-    if (this.pendingTrackpadMove) {
-      this.scheduleTrackpadMoveFlush();
-    }
+    this.trackpadMoveInFlight = false;
   }
 
   private isRelayConnected(): boolean {
     return this.relay.status() === "connected";
   }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
