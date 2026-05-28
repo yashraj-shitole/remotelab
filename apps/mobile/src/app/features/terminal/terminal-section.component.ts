@@ -3,6 +3,11 @@ import { FormsModule } from "@angular/forms";
 import { TerminalSummary } from "@remotelab/shared";
 import { TerminalPaneComponent } from "../../shared/terminal-pane.component";
 
+type TerminalShortcut = {
+  label: string;
+  sequence: string;
+};
+
 @Component({
   selector: "app-terminal-section",
   standalone: true,
@@ -41,6 +46,18 @@ import { TerminalPaneComponent } from "../../shared/terminal-pane.component";
         (dimensionsChange)="dimensionsChange.emit($event)">
       </app-terminal-pane>
 
+      <div class="quick-keys" role="toolbar" aria-label="Terminal quick keys">
+        @for (shortcut of quickShortcuts; track shortcut.label) {
+          <button
+            class="button-primary key-button"
+            type="button"
+            [disabled]="!activeTerminalId"
+            (click)="sendShortcut(shortcut.sequence)">
+            {{ shortcut.label }}
+          </button>
+        }
+      </div>
+
       <form class="command-form" (ngSubmit)="runTerminalCommand.emit()">
         <input [ngModel]="terminalCommand" (ngModelChange)="terminalCommandChange.emit($event)" name="terminalCommand" placeholder="npm test">
         <button class="button-primary" type="submit">RUN</button>
@@ -54,6 +71,18 @@ export class TerminalSectionComponent {
   @Input() activeTerminalOutput = "";
   @Input() terminalCommand = "";
 
+  readonly quickShortcuts: TerminalShortcut[] = [
+    { label: "CTRL+C", sequence: "\u0003" },
+    { label: "CTRL+D", sequence: "\u0004" },
+    { label: "ENTER", sequence: "\r" },
+    { label: "TAB", sequence: "\t" },
+    { label: "ESC", sequence: "\u001b" },
+    { label: "UP", sequence: "\u001b[A" },
+    { label: "DOWN", sequence: "\u001b[B" },
+    { label: "LEFT", sequence: "\u001b[D" },
+    { label: "RIGHT", sequence: "\u001b[C" }
+  ];
+
   @Output() createTerminal = new EventEmitter<void>();
   @Output() showTerminal = new EventEmitter<void>();
   @Output() syncTerminal = new EventEmitter<void>();
@@ -64,4 +93,8 @@ export class TerminalSectionComponent {
   @Output() dimensionsChange = new EventEmitter<{ columns: number; rows: number }>();
   @Output() terminalCommandChange = new EventEmitter<string>();
   @Output() runTerminalCommand = new EventEmitter<void>();
+
+  sendShortcut(sequence: string): void {
+    this.terminalInput.emit(sequence);
+  }
 }
