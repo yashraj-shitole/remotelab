@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { createEnvelope, TerminalOutputEvent } from "@remotelab/shared";
-import { getConfig } from "./config";
+import QRCode from "qrcode";
+import { getConfig, RemoteLabConfig } from "./config";
 import { CloudRelayClient } from "./relay/CloudRelayClient";
 import { CommandRouter } from "./services/CommandRouter";
 import { CopilotCliService } from "./services/CopilotCliService";
@@ -13,6 +14,18 @@ import { VSCodeCommandService } from "./services/VSCodeCommandService";
 import { WorkspaceService } from "./services/WorkspaceService";
 
 let app: RemoteLabApp | undefined;
+
+type PairingQrPayload = {
+  v: 1;
+  relayUrl: string;
+  pairingCode: string;
+  relaySecret?: string;
+  issuedAt: string;
+  expiresAt: string;
+  autoConnect: boolean;
+};
+
+const pairingQrTtlMs = 10 * 60 * 1000;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   app = new RemoteLabApp(context);
@@ -69,6 +82,7 @@ class RemoteLabApp implements vscode.Disposable {
       vscode.commands.registerCommand("remotelab.connectRelay", () => this.connectRelay()),
       vscode.commands.registerCommand("remotelab.disconnectRelay", () => this.disconnectRelay()),
       vscode.commands.registerCommand("remotelab.showPairingCode", () => this.showPairingCode()),
+      vscode.commands.registerCommand("remotelab.showPairingQr", async () => this.showPairingQr()),
       vscode.commands.registerCommand("remotelab.createManagedTerminal", async () => {
         await this.terminals.createManagedTerminal({ name: "RemoteLab Terminal" });
         await this.router.pushSnapshot();
@@ -111,6 +125,48 @@ class RemoteLabApp implements vscode.Disposable {
     void vscode.window.showInformationMessage(`RemoteLab pairing code: ${config.pairingCode}`);
   }
 
+  async showPairingQr(): Promise<void> {
+    const config = getConfig();
+
+    try {
+      const { link, expiresAt } = this.createPairingLink(config);
+      const qrCodeDataUrl = await QRCode.toDataURL(link, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 320
+      });
+
+      const panel = vscode.window.createWebviewPanel(
+        "remotelab.pairingQr",
+        "RemoteLab Pairing QR",
+        vscode.ViewColumn.Active,
+        {
+          enableScripts: false,
+          retainContextWhenHidden: false
+        }
+      );
+
+      panel.webview.html = this.renderPairingQrHtml({
+        qrCodeDataUrl,
+        pairingCode: config.pairingCode,
+        relayUrl: config.relayUrl,
+        link,
+        expiresAt
+      });
+
+      await vscode.env.clipboard.writeText(link);
+      this.output.show(true);
+      this.output.appendLine("Pairing QR generated and copied to clipboard.");
+      this.output.appendLine(`Pairing code: ${config.pairingCode}`);
+      this.output.appendLine(`Relay URL: ${config.relayUrl}`);
+      void vscode.window.showInformationMessage("RemoteLab pairing link copied. Scan the QR with your phone camera.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.output.appendLine(`Failed to generate pairing QR: ${message}`);
+      void vscode.window.showErrorMessage(`RemoteLab could not generate a pairing QR code: ${message}`);
+    }
+  }
+
   dispose(): void {
     if (this.snapshotTimer) {
       clearTimeout(this.snapshotTimer);
@@ -128,6 +184,96 @@ class RemoteLabApp implements vscode.Disposable {
     this.relay.send(createEnvelope("terminal.output", event, { source: "extension", target: "mobile" }));
   }
 
+  private createPairingLink(config: RemoteLabConfig): { link: string; expiresAt: Date } {
+    const issuedAt = new Date();
+    const expiresAt = new Date(issuedAt.getTime() + pairingQrTtlMs);
+    const payload: PairingQrPayload = {
+      v: 1,
+      relayUrl: config.relayUrl,
+      pairingCode: config.pairingCode,
+      issuedAt: issuedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      autoConnect: true
+    };
+
+    if (config.relaySecret) {
+      payload.relaySecret = config.relaySecret;
+    }
+
+    const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+    const link = new URL(config.mobilePairingUrl);
+    const hashParams = new URLSearchParams(link.hash.startsWith("#") ? link.hash.slice(1) : link.hash);
+    hashParams.set("pair", encodedPayload);
+    link.hash = hashParams.toString();
+    return { link: link.toString(), expiresAt };
+  }
+
+  private renderPairingQrHtml(params: {
+    qrCodeDataUrl: string;
+    pairingCode: string;
+    relayUrl: string;
+    link: string;
+    expiresAt: Date;
+  }): string {
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemoteLab Pairing QR</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body {
+        margin: 0;
+        font-family: Segoe UI, sans-serif;
+        padding: 20px;
+      }
+
+      .panel {
+        max-width: 520px;
+        margin: 0 auto;
+        display: grid;
+        gap: 12px;
+      }
+
+      .code {
+        margin: 0;
+        padding: 6px 8px;
+        border-radius: 8px;
+        word-break: break-word;
+        border: 1px solid color-mix(in oklab, CanvasText 16%, transparent);
+      }
+
+      img {
+        width: min(320px, 100%);
+        height: auto;
+        background: white;
+        border-radius: 12px;
+      }
+
+      .meta {
+        margin: 0;
+        opacity: 0.82;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <h1>Scan To Pair</h1>
+      <p class="meta">Open your phone camera, scan this QR, and RemoteLab will import relay settings automatically.</p>
+      <img src="${params.qrCodeDataUrl}" alt="RemoteLab pairing QR code">
+      <p class="meta">Pairing code: ${escapeHtml(params.pairingCode)}</p>
+      <p class="meta">Relay URL: ${escapeHtml(params.relayUrl)}</p>
+      <p class="meta">Expires: ${escapeHtml(params.expiresAt.toLocaleString())}</p>
+      <p class="code">${escapeHtml(params.link)}</p>
+    </main>
+  </body>
+</html>`;
+  }
+
   private queueSnapshotPush(): void {
     if (this.snapshotTimer) {
       clearTimeout(this.snapshotTimer);
@@ -137,4 +283,13 @@ class RemoteLabApp implements vscode.Disposable {
       void this.router.pushSnapshot();
     }, 500);
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

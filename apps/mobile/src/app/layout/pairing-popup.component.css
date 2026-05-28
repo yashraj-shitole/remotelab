@@ -34,6 +34,15 @@
   margin-top: var(--spacing-xs);
 }
 
+.qr-hint {
+  margin-top: var(--spacing-sm);
+  margin-bottom: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
 .connection-form {
   display: grid;
   gap: var(--spacing-md);

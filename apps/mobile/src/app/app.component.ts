@@ -23,8 +23,19 @@ import { ConnectionSectionComponent } from "./layout/connection-section.componen
 import { HeroSectionComponent } from "./layout/hero-section.component";
 import { PairingPopupComponent } from "./layout/pairing-popup.component";
 import { TopNavComponent } from "./layout/top-nav.component";
-import { RelayClientService } from "./core/services/relay-client.service";
+import { ConnectionSettings, RelayClientService } from "./core/services/relay-client.service";
 import { AppSection } from "./core/types/app-section.type";
+
+type PairingLinkPayload = {
+  v?: number;
+  relayUrl?: unknown;
+  pairingCode?: unknown;
+  relaySecret?: unknown;
+  expiresAt?: unknown;
+  autoConnect?: unknown;
+};
+
+const pairingParamNames = ["pair", "relayUrl", "pairingCode", "relaySecret", "autoConnect"];
 
 @Component({
   selector: "app-root",
@@ -74,6 +85,8 @@ export class AppComponent {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.section.set(this.sectionFromUrl(this.router.url)));
+
+    this.applyPairingFromLocation();
   }
 
   connect(): void {
@@ -267,6 +280,155 @@ export class AppComponent {
       truncated: Boolean(candidate.truncated),
       isBinary: Boolean(candidate.isBinary)
     };
+  }
+
+  private applyPairingFromLocation(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const current = new URL(window.location.href);
+    const hashParams = new URLSearchParams(current.hash.startsWith("#") ? current.hash.slice(1) : current.hash);
+    const encodedPayload = hashParams.get("pair") ?? current.searchParams.get("pair");
+
+    let importedSettings: Pick<ConnectionSettings, "relayUrl" | "pairingCode" | "relaySecret"> | undefined;
+    let shouldAutoConnect = true;
+
+    if (encodedPayload) {
+      const payload = this.decodePairingPayload(encodedPayload);
+      if (!payload) {
+        this.relay.lastError.set("Pairing QR is invalid. Generate a new pairing QR from VS Code.");
+        this.clearPairingParamsFromLocation(current);
+        return;
+      }
+
+      if (typeof payload.expiresAt === "string") {
+        const expiresAt = Date.parse(payload.expiresAt);
+        if (!Number.isNaN(expiresAt) && expiresAt < Date.now()) {
+          this.relay.lastError.set("Pairing QR has expired. Generate a new pairing QR from VS Code.");
+          this.clearPairingParamsFromLocation(current);
+          return;
+        }
+      }
+
+      importedSettings = this.normalizeImportedSettings(payload);
+      if (!importedSettings) {
+        this.relay.lastError.set("Pairing QR is missing relay settings.");
+        this.clearPairingParamsFromLocation(current);
+        return;
+      }
+
+      if (typeof payload.autoConnect === "boolean") {
+        shouldAutoConnect = payload.autoConnect;
+      }
+    } else {
+      const relayUrl = current.searchParams.get("relayUrl") ?? hashParams.get("relayUrl");
+      const pairingCode = current.searchParams.get("pairingCode") ?? hashParams.get("pairingCode");
+      const relaySecret = current.searchParams.get("relaySecret") ?? hashParams.get("relaySecret");
+
+      if (!relayUrl || !pairingCode) {
+        return;
+      }
+
+      importedSettings = this.normalizeImportedSettings({ relayUrl, pairingCode, relaySecret });
+      if (!importedSettings) {
+        this.relay.lastError.set("Pairing link is invalid.");
+        this.clearPairingParamsFromLocation(current);
+        return;
+      }
+    }
+
+    const nextSettings: ConnectionSettings = {
+      ...this.settings(),
+      ...importedSettings
+    };
+
+    this.settings.set(nextSettings);
+    this.relay.saveSettings(nextSettings);
+    this.relay.lastError.set("");
+    this.clearPairingParamsFromLocation(current);
+
+    if (shouldAutoConnect) {
+      this.relay.connect(nextSettings);
+    }
+  }
+
+  private decodePairingPayload(encodedPayload: string): PairingLinkPayload | undefined {
+    const decodedText = this.decodeBase64Url(encodedPayload);
+    if (!decodedText) {
+      return undefined;
+    }
+
+    try {
+      const payload = JSON.parse(decodedText) as PairingLinkPayload;
+      if (payload.v !== undefined && payload.v !== 1) {
+        return undefined;
+      }
+      return payload;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private decodeBase64Url(value: string): string | undefined {
+    try {
+      const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+      const binary = window.atob(padded);
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private normalizeImportedSettings(payload: {
+    relayUrl?: unknown;
+    pairingCode?: unknown;
+    relaySecret?: unknown;
+  }): Pick<ConnectionSettings, "relayUrl" | "pairingCode" | "relaySecret"> | undefined {
+    if (typeof payload.relayUrl !== "string" || typeof payload.pairingCode !== "string") {
+      return undefined;
+    }
+
+    const relayUrl = payload.relayUrl.trim();
+    const pairingCode = payload.pairingCode.trim();
+    if (!relayUrl || !pairingCode) {
+      return undefined;
+    }
+
+    let normalizedRelayUrl: string;
+    try {
+      const parsedRelayUrl = new URL(relayUrl);
+      if (parsedRelayUrl.protocol !== "ws:" && parsedRelayUrl.protocol !== "wss:") {
+        return undefined;
+      }
+      normalizedRelayUrl = parsedRelayUrl.toString();
+    } catch {
+      return undefined;
+    }
+
+    const relaySecret = typeof payload.relaySecret === "string" ? payload.relaySecret.trim() : "";
+    return {
+      relayUrl: normalizedRelayUrl,
+      pairingCode,
+      relaySecret
+    };
+  }
+
+  private clearPairingParamsFromLocation(current: URL): void {
+    const searchParams = new URLSearchParams(current.search);
+    const hashParams = new URLSearchParams(current.hash.startsWith("#") ? current.hash.slice(1) : current.hash);
+
+    for (const name of pairingParamNames) {
+      searchParams.delete(name);
+      hashParams.delete(name);
+    }
+
+    const nextSearch = searchParams.toString();
+    const nextHash = hashParams.toString();
+    const nextUrl = `${current.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextHash ? `#${nextHash}` : ""}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
   }
 
   private sectionFromUrl(url: string): AppSection {

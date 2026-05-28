@@ -14,6 +14,7 @@
     "onCommand:remotelab.connectRelay",
     "onCommand:remotelab.disconnectRelay",
     "onCommand:remotelab.showPairingCode",
+    "onCommand:remotelab.showPairingQr",
     "onCommand:remotelab.createManagedTerminal",
     "onCommand:remotelab.continueCopilotCli"
   ],
@@ -31,6 +32,10 @@
       {
         "command": "remotelab.showPairingCode",
         "title": "RemoteLab: Show Pairing Code"
+      },
+      {
+        "command": "remotelab.showPairingQr",
+        "title": "RemoteLab: Show Pairing QR"
       },
       {
         "command": "remotelab.createManagedTerminal",
@@ -58,6 +63,11 @@
           "type": "string",
           "default": "",
           "description": "Pairing code shared with the mobile app. If empty, the extension generates one per session."
+        },
+        "remotelab.mobilePairingUrl": {
+          "type": "string",
+          "default": "https://remotelab.live/home",
+          "description": "Mobile web URL opened by pairing QR scans. Usually the hosted RemoteLab app URL."
         },
         "remotelab.deviceName": {
           "type": "string",
@@ -110,6 +120,7 @@
   },
   "dependencies": {
     "@remotelab/shared": "file:../shared",
+    "qrcode": "^1.5.4",
     "ws": "^8.21.0"
   },
   "optionalDependencies": {

@@ -5,6 +5,7 @@ export interface RemoteLabConfig {
   relayUrl: string;
   relaySecret: string;
   pairingCode: string;
+  mobilePairingUrl: string;
   deviceName: string;
   autoConnect: boolean;
   copilotCliPath: string;
@@ -21,6 +22,7 @@ export function getConfig(): RemoteLabConfig {
     relayUrl: config.get("relayUrl", "wss://remotelab-relay.onrender.com/relay"),
     relaySecret: config.get("relaySecret", ""),
     pairingCode: config.get("pairingCode", "") || getGeneratedPairingCode(),
+    mobilePairingUrl: config.get("mobilePairingUrl", "https://remotelab.live/home"),
     deviceName: config.get("deviceName", "VS Code Workstation"),
     autoConnect: config.get("autoConnect", false),
     copilotCliPath: config.get("copilotCliPath", "copilot"),

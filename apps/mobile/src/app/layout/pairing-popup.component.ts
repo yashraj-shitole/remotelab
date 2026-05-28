@@ -18,6 +18,7 @@ type ConnectionSettingKey = "relayUrl" | "pairingCode" | "relaySecret" | "device
         </div>
 
         <h2 id="pairing-title">CONNECT RELAY</h2>
+        <p class="qr-hint">TIP: RUN REMOTELAB: SHOW PAIRING QR IN VS CODE, THEN SCAN IT WITH THIS PHONE.</p>
 
         <form class="connection-form" (ngSubmit)="connectAction.emit()">
           <label>
