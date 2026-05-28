@@ -60,7 +60,10 @@ export class AppComponent {
   readonly filePreviewLoading = signal(false);
 
   private pendingTrackpadMove: TrackpadMoveRequest | undefined;
-  private trackpadMoveInFlight = false;
+  private trackpadMoveFlushTimer: number | undefined;
+
+  private readonly trackpadMoveDispatchDelayMs = 12;
+  private readonly maxTrackpadDeltaPerDispatch = 180;
 
   readonly statusLabel = computed(() => this.relay.status().toUpperCase());
   readonly workspaceName = computed(() => this.relay.snapshot()?.workspaceName ?? "NO WORKSPACE");
@@ -229,9 +232,7 @@ export class AppComponent {
       this.pendingTrackpadMove = { deltaX: delta.deltaX, deltaY: delta.deltaY };
     }
 
-    if (!this.trackpadMoveInFlight) {
-      void this.flushTrackpadMoveQueue();
-    }
+    this.scheduleTrackpadMoveFlush();
   }
 
   sendTrackpadScroll(payload: TrackpadScrollRequest): void {
@@ -239,7 +240,7 @@ export class AppComponent {
       return;
     }
 
-    void this.relay.command("trackpad.scroll", { deltaY: payload.deltaY });
+    this.relay.commandNoWait("trackpad.scroll", { deltaY: payload.deltaY });
   }
 
   sendTrackpadClick(button: TrackpadClickRequest["button"]): void {
@@ -277,24 +278,44 @@ export class AppComponent {
     return "home";
   }
 
-  private async flushTrackpadMoveQueue(): Promise<void> {
-    this.trackpadMoveInFlight = true;
-
-    while (this.pendingTrackpadMove && this.isRelayConnected()) {
-      const delta = this.pendingTrackpadMove;
-      this.pendingTrackpadMove = undefined;
-
-      try {
-        await this.relay.command("trackpad.move", { deltaX: delta.deltaX, deltaY: delta.deltaY });
-      } catch {
-        break;
-      }
+  private scheduleTrackpadMoveFlush(): void {
+    if (this.trackpadMoveFlushTimer !== undefined) {
+      return;
     }
 
-    this.trackpadMoveInFlight = false;
+    this.trackpadMoveFlushTimer = window.setTimeout(() => {
+      this.trackpadMoveFlushTimer = undefined;
+      this.flushTrackpadMove();
+    }, this.trackpadMoveDispatchDelayMs);
+  }
+
+  private flushTrackpadMove(): void {
+    if (!this.isRelayConnected()) {
+      this.pendingTrackpadMove = undefined;
+      return;
+    }
+
+    const delta = this.pendingTrackpadMove;
+    if (!delta) {
+      return;
+    }
+
+    this.pendingTrackpadMove = undefined;
+    this.relay.commandNoWait("trackpad.move", {
+      deltaX: clamp(delta.deltaX, -this.maxTrackpadDeltaPerDispatch, this.maxTrackpadDeltaPerDispatch),
+      deltaY: clamp(delta.deltaY, -this.maxTrackpadDeltaPerDispatch, this.maxTrackpadDeltaPerDispatch)
+    });
+
+    if (this.pendingTrackpadMove) {
+      this.scheduleTrackpadMoveFlush();
+    }
   }
 
   private isRelayConnected(): boolean {
     return this.relay.status() === "connected";
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
