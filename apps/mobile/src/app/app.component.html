@@ -63,6 +63,7 @@
       [filePattern]="filePattern()"
       [selectedFile]="selectedFile()"
       [filePreviewLoading]="filePreviewLoading()"
+      [activeEditor]="relay.snapshot()?.activeEditor"
       (executeCommand)="executeCommand($event)"
       (refreshGit)="refreshGit()"
       (refreshDiagnostics)="refreshDiagnostics()"

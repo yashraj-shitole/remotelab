@@ -66,7 +66,7 @@ export class AppComponent {
   readonly settings = signal(this.relay.loadSettings());
   readonly prompt = signal("");
   readonly terminalCommand = signal("");
-  readonly filePattern = signal("**/*.{ts,tsx,js,json,md,scss,html}");
+  readonly filePattern = signal("**/*");
   readonly selectedFile = signal<FileContentSnapshot | undefined>(undefined);
   readonly filePreviewLoading = signal(false);
 
@@ -203,7 +203,8 @@ export class AppComponent {
   }
 
   findFiles(): void {
-    void this.relay.command<FileMatch[]>("workspace.findFiles", { pattern: this.filePattern(), limit: 60 }).then((files) => this.relay.files.set(files));
+    const pattern = this.filePattern().trim() || "**/*";
+    void this.relay.command<FileMatch[]>("workspace.findFiles", { pattern, limit: 1200 }).then((files) => this.relay.files.set(files));
   }
 
   async viewFile(path: string): Promise<void> {
@@ -221,8 +222,8 @@ export class AppComponent {
     }
   }
 
-  openFile(path: string): void {
-    void this.relay.command("editor.openFile", { path });
+  openFile(request: { path: string; line?: number; character?: number }): void {
+    void this.relay.command("editor.openFile", request);
   }
 
   executeCommand(commandId: string): void {
