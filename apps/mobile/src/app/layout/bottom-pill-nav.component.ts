@@ -28,6 +28,7 @@ export class BottomPillNavComponent {
   readonly items: ReadonlyArray<{ section: AppSection; label: string; hint: string }> = [
     { section: "ai", label: "AI", hint: "Copilot" },
     { section: "terminal", label: "TERMINAL", hint: "Live shell" },
-    { section: "workspace", label: "WORKSPACE", hint: "Files + tasks" }
+    { section: "workspace", label: "WORKSPACE", hint: "Files + tasks" },
+    { section: "trackpad", label: "TRACKPAD", hint: "Pointer" }
   ];
 }

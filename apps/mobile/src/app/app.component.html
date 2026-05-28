@@ -75,6 +75,16 @@
     </app-workspace-section>
   }
 
+  @if (section() === 'trackpad') {
+    <app-trackpad-section
+      [connected]="relay.status() === 'connected'"
+      (move)="sendTrackpadMove($event)"
+      (scroll)="sendTrackpadScroll($event)"
+      (leftClick)="sendTrackpadClick($event)"
+      (rightClick)="sendTrackpadClick($event)">
+    </app-trackpad-section>
+  }
+
   <app-activity-feed [activity]="relay.activity()"></app-activity-feed>
 
   @if (relay.lastError()) {

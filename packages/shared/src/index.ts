@@ -37,7 +37,10 @@ export type RemoteLabCommand =
   | "task.list"
   | "task.run"
   | "git.status"
-  | "diagnostics.list";
+  | "diagnostics.list"
+  | "trackpad.move"
+  | "trackpad.click"
+  | "trackpad.scroll";
 
 export interface CommandRequest<TArgs = Record<string, unknown>> {
   command: RemoteLabCommand;
@@ -53,6 +56,25 @@ export interface CommandResponse<TData = unknown> {
     message: string;
     details?: unknown;
   };
+}
+
+export interface TrackpadMoveRequest {
+  deltaX: number;
+  deltaY: number;
+}
+
+export interface TrackpadClickRequest {
+  button: "left" | "right";
+}
+
+export interface TrackpadScrollRequest {
+  deltaY: number;
+}
+
+export interface TrackpadPointerState {
+  fileName?: string;
+  line: number;
+  character: number;
 }
 
 export type TerminalKind = "vscode" | "managed" | "copilot-cli";

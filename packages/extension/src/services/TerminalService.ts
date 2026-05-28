@@ -254,7 +254,7 @@ export class TerminalService implements vscode.Disposable {
       ptyProcess.onData((data: string) => this.emit(managed, data, "stdout"));
       return {
         pid: ptyProcess.pid,
-        write: (data: string) => ptyProcess.write(data),
+        write: (data: string) => ptyProcess.write(normalizeInputForPty(data)),
         resize: (columns: number, rows: number) => ptyProcess.resize(columns, rows),
         kill: () => ptyProcess.kill()
       };
@@ -402,7 +402,11 @@ export class TerminalService implements vscode.Disposable {
 
 function getDefaultShell(): string {
   if (process.platform === "win32") {
-    return process.env.ComSpec || "powershell.exe";
+    const systemRoot = process.env.SystemRoot || process.env.WINDIR;
+    if (systemRoot) {
+      return path.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    }
+    return "powershell.exe";
   }
 
   return process.env.SHELL || "/bin/bash";
@@ -434,6 +438,25 @@ function clampDimension(value: number, min: number, max: number): number {
 }
 
 function normalizeInputForPipe(data: string): string {
-  // Pipe-backed shells generally expect LF for command submission.
-  return data.replace(/\r(?!\n)/g, "\n");
+  if (process.platform !== "win32") {
+    // Pipe-backed shells generally expect LF for command submission.
+    return data.replace(/\r(?!\n)/g, "\n");
+  }
+
+  // Windows console shells are most reliable with CRLF command submission.
+  return data
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n/g, "\r\n");
+}
+
+function normalizeInputForPty(data: string): string {
+  if (process.platform !== "win32") {
+    return data;
+  }
+
+  // Some mobile keyboards emit LF for Enter; Windows PTYs expect CR.
+  return data
+    .replace(/\r\n/g, "\r")
+    .replace(/\n/g, "\r");
 }

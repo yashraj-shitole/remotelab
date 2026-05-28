@@ -26,7 +26,8 @@ export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestro
   ngAfterViewInit(): void {
     this.terminal = new Terminal({
       cursorBlink: true,
-      convertEol: true,
+      // Keep raw terminal line behavior for full-screen TUIs (e.g., Copilot CLI).
+      convertEol: false,
       fontFamily: 'var(--font-mono)',
       fontSize: 12,
       lineHeight: 1.35,

@@ -8,6 +8,7 @@ import { DiagnosticsService } from "./services/DiagnosticsService";
 import { GitService } from "./services/GitService";
 import { TaskService } from "./services/TaskService";
 import { TerminalService } from "./services/TerminalService";
+import { TrackpadService } from "./services/TrackpadService";
 import { VSCodeCommandService } from "./services/VSCodeCommandService";
 import { WorkspaceService } from "./services/WorkspaceService";
 
@@ -31,6 +32,7 @@ class RemoteLabApp implements vscode.Disposable {
   private readonly output = vscode.window.createOutputChannel("RemoteLab");
   private readonly relay: CloudRelayClient;
   private readonly terminals: TerminalService;
+  private readonly trackpad: TrackpadService;
   private readonly router: CommandRouter;
   private readonly disposables: vscode.Disposable[] = [];
   private snapshotTimer?: NodeJS.Timeout;
@@ -47,6 +49,7 @@ class RemoteLabApp implements vscode.Disposable {
     const copilot = new CopilotCliService(this.terminals);
     const tasks = new TaskService();
     const commands = new VSCodeCommandService();
+    this.trackpad = new TrackpadService();
 
     this.router = new CommandRouter(
       (envelope) => this.relay.send(envelope),
@@ -56,7 +59,8 @@ class RemoteLabApp implements vscode.Disposable {
       diagnostics,
       git,
       tasks,
-      commands
+      commands,
+      this.trackpad
     );
   }
 
@@ -113,6 +117,7 @@ class RemoteLabApp implements vscode.Disposable {
     }
     this.relay.dispose();
     this.terminals.dispose();
+    this.trackpad.dispose();
     this.output.dispose();
     for (const disposable of this.disposables) {
       disposable.dispose();

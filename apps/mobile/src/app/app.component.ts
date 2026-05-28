@@ -2,10 +2,20 @@ import { CommonModule } from "@angular/common";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Component, DestroyRef, ViewEncapsulation, computed, inject, signal } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
-import { DiagnosticSnapshot, FileContentSnapshot, FileMatch, GitStatusSnapshot, TaskSummary } from "@remotelab/shared";
+import {
+  DiagnosticSnapshot,
+  FileContentSnapshot,
+  FileMatch,
+  GitStatusSnapshot,
+  TaskSummary,
+  TrackpadClickRequest,
+  TrackpadMoveRequest,
+  TrackpadScrollRequest
+} from "@remotelab/shared";
 import { filter } from "rxjs/operators";
 import { AiSectionComponent } from "./features/ai/ai-section.component";
 import { TerminalSectionComponent } from "./features/terminal/terminal-section.component";
+import { TrackpadSectionComponent } from "./features/trackpad/trackpad-section.component";
 import { WorkspaceSectionComponent } from "./features/workspace/workspace-section.component";
 import { ActivityFeedComponent } from "./layout/activity-feed.component";
 import { BottomPillNavComponent } from "./layout/bottom-pill-nav.component";
@@ -27,6 +37,7 @@ import { AppSection } from "./core/types/app-section.type";
     ConnectionSectionComponent,
     AiSectionComponent,
     TerminalSectionComponent,
+    TrackpadSectionComponent,
     WorkspaceSectionComponent,
     ActivityFeedComponent,
     BottomPillNavComponent
@@ -47,6 +58,9 @@ export class AppComponent {
   readonly filePattern = signal("**/*.{ts,tsx,js,json,md,scss,html}");
   readonly selectedFile = signal<FileContentSnapshot | undefined>(undefined);
   readonly filePreviewLoading = signal(false);
+
+  private pendingTrackpadMove: TrackpadMoveRequest | undefined;
+  private trackpadMoveInFlight = false;
 
   readonly statusLabel = computed(() => this.relay.status().toUpperCase());
   readonly workspaceName = computed(() => this.relay.snapshot()?.workspaceName ?? "NO WORKSPACE");
@@ -202,6 +216,40 @@ export class AppComponent {
     void this.relay.command("vscode.command", { commandId });
   }
 
+  sendTrackpadMove(delta: TrackpadMoveRequest): void {
+    if (!this.isRelayConnected()) {
+      return;
+    }
+
+    const pending = this.pendingTrackpadMove;
+    if (pending) {
+      pending.deltaX += delta.deltaX;
+      pending.deltaY += delta.deltaY;
+    } else {
+      this.pendingTrackpadMove = { deltaX: delta.deltaX, deltaY: delta.deltaY };
+    }
+
+    if (!this.trackpadMoveInFlight) {
+      void this.flushTrackpadMoveQueue();
+    }
+  }
+
+  sendTrackpadScroll(payload: TrackpadScrollRequest): void {
+    if (!this.isRelayConnected()) {
+      return;
+    }
+
+    void this.relay.command("trackpad.scroll", { deltaY: payload.deltaY });
+  }
+
+  sendTrackpadClick(button: TrackpadClickRequest["button"]): void {
+    if (!this.isRelayConnected()) {
+      return;
+    }
+
+    void this.relay.command("trackpad.click", { button });
+  }
+
   private normalizeFileSnapshot(value: unknown, fallbackPath: string): FileContentSnapshot {
     if (!value || typeof value !== "object") {
       throw new Error("File preview is unavailable: invalid response from extension. Reload the extension and reconnect.");
@@ -223,9 +271,30 @@ export class AppComponent {
 
   private sectionFromUrl(url: string): AppSection {
     const segment = url.split("?")[0].split("#")[0].replace(/^\/+/, "").split("/")[0];
-    if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai") {
+    if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai" || segment === "trackpad") {
       return segment;
     }
     return "home";
+  }
+
+  private async flushTrackpadMoveQueue(): Promise<void> {
+    this.trackpadMoveInFlight = true;
+
+    while (this.pendingTrackpadMove && this.isRelayConnected()) {
+      const delta = this.pendingTrackpadMove;
+      this.pendingTrackpadMove = undefined;
+
+      try {
+        await this.relay.command("trackpad.move", { deltaX: delta.deltaX, deltaY: delta.deltaY });
+      } catch {
+        break;
+      }
+    }
+
+    this.trackpadMoveInFlight = false;
+  }
+
+  private isRelayConnected(): boolean {
+    return this.relay.status() === "connected";
   }
 }

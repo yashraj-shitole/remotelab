@@ -6,6 +6,7 @@ import { GitService } from "./GitService";
 import { TaskService } from "./TaskService";
 import { WorkspaceService } from "./WorkspaceService";
 import { VSCodeCommandService } from "./VSCodeCommandService";
+import { TrackpadService } from "./TrackpadService";
 import { toErrorMessage } from "../utils/errors";
 
 type Sender = (envelope: RelayEnvelope) => void;
@@ -19,7 +20,8 @@ export class CommandRouter {
     private readonly diagnostics: DiagnosticsService,
     private readonly git: GitService,
     private readonly tasks: TaskService,
-    private readonly commands: VSCodeCommandService
+    private readonly commands: VSCodeCommandService,
+    private readonly trackpad: TrackpadService
   ) {}
 
   async handle(envelope: RelayEnvelope): Promise<void> {
@@ -45,7 +47,7 @@ export class CommandRouter {
         data
       });
 
-      if (request.command !== "snapshot.get") {
+      if (request.command !== "snapshot.get" && !request.command.startsWith("trackpad.")) {
         await this.pushSnapshot();
       }
     } catch (error) {
@@ -121,6 +123,12 @@ export class CommandRouter {
         return this.git.status(typeof args.cwd === "string" ? args.cwd : undefined);
       case "diagnostics.list":
         return this.diagnostics.list(asOptionalNumber(args.limit) ?? 80);
+      case "trackpad.move":
+        return this.trackpad.move(asOptionalNumber(args.deltaX) ?? 0, asOptionalNumber(args.deltaY) ?? 0);
+      case "trackpad.click":
+        return this.trackpad.click(args.button === "right" ? "right" : "left");
+      case "trackpad.scroll":
+        return this.trackpad.scroll(asOptionalNumber(args.deltaY) ?? 0);
       default:
         throw new Error(`Unsupported command: ${request.command}`);
     }
