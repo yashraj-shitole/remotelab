@@ -1,7 +1,7 @@
 import http from "node:http";
 import { URL } from "node:url";
 import { RawData, WebSocket, WebSocketServer } from "ws";
-import { createEnvelope, PeerRole, RelayEnvelope } from "@remotelab/shared";
+import { createEnvelope, PeerRole, RelayEnvelope } from "./protocol";
 
 type Peer = {
   id: string;
@@ -31,7 +31,7 @@ const server = http.createServer((request, response) => {
 const wss = new WebSocketServer({ server, path: "/relay" });
 
 wss.on("connection", (socket, request) => {
-  const url = new URL(request.url ?? "/relay", `http://${request.headers.host ?? "localhost"}`);
+  const url = new URL(request.url ?? "/relay", `http://${request.headers.host ?? "wss://192.168.1.125:8787/relay"}`);
   const role = url.searchParams.get("role") as PeerRole | null;
   const pairingCode = url.searchParams.get("pairingCode")?.trim();
   const deviceName = url.searchParams.get("deviceName")?.trim() || "Unknown device";
