@@ -157,6 +157,15 @@
   cursor: text;
 }
 
+.cursor-marker {
+  display: inline-block;
+  width: 0;
+  margin: 0 0.5px;
+  border-left: 2px solid var(--color-link);
+  height: 1.2em;
+  vertical-align: text-bottom;
+}
+
 @media (min-width: 768px) {
   .data-band {
     grid-template-columns: 1fr 1fr;

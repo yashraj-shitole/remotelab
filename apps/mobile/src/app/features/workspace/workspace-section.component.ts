@@ -207,7 +207,15 @@ const extensionIcons: Record<string, string> = {
                     [class.cursor-active]="line.number === previewCursorLine"
                     (click)="onPreviewLineClick(line.number, $event)">
                     <span class="line-number">{{ line.number }}</span>
-                    <span class="line-text">{{ line.text || " " }}</span>
+                    <span class="line-text">
+                      @if (line.number === previewCursorLine) {
+                        <span>{{ cursorPrefix(line) }}</span>
+                        <span class="cursor-marker" aria-hidden="true"></span>
+                        <span>{{ cursorSuffix(line) }}</span>
+                      } @else {
+                        {{ line.text || " " }}
+                      }
+                    </span>
                   </button>
                 }
               </div>
@@ -319,8 +327,11 @@ export class WorkspaceSectionComponent implements OnChanges {
 
   setPreviewCursor(line: number, character: number): void {
     const lineCount = this.previewLines.length || 1;
-    this.previewCursorLine = clamp(Math.round(line), 1, lineCount);
-    this.previewCursorCharacter = Math.max(1, Math.round(character));
+    const safeLine = clamp(Math.round(line), 1, lineCount);
+    const lineText = this.previewLines[safeLine - 1]?.text ?? "";
+    const maxCharacter = Math.max(1, lineText.length + 1);
+    this.previewCursorLine = safeLine;
+    this.previewCursorCharacter = clamp(Math.round(character), 1, maxCharacter);
   }
 
   onPreviewLineClick(line: number, event: MouseEvent): void {
@@ -484,6 +495,21 @@ export class WorkspaceSectionComponent implements OnChanges {
   private iconForFile(fileName: string): string {
     const extension = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() : "";
     return extension && extensionIcons[extension] ? extensionIcons[extension] : "FILE";
+  }
+
+  cursorPrefix(line: PreviewLine): string {
+    const index = this.cursorIndexForLine(line);
+    return line.text.slice(0, index);
+  }
+
+  cursorSuffix(line: PreviewLine): string {
+    const index = this.cursorIndexForLine(line);
+    const suffix = line.text.slice(index);
+    return suffix || " ";
+  }
+
+  private cursorIndexForLine(line: PreviewLine): number {
+    return clamp(this.previewCursorCharacter - 1, 0, line.text.length);
   }
 
   private characterFromPreviewClick(line: number, event: MouseEvent): number {
