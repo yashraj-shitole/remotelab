@@ -29,6 +29,7 @@ export interface ConnectionSettings {
 }
 
 const storedSettingsKey = "remotelab.connectionSettings";
+const reconnectOnStartupKey = "remotelab.reconnectOnStartup";
 
 @Injectable({ providedIn: "root" })
 export class RelayClientService {
@@ -74,6 +75,10 @@ export class RelayClientService {
     localStorage.setItem(storedSettingsKey, JSON.stringify(settings));
   }
 
+  shouldReconnectOnStartup(): boolean {
+    return localStorage.getItem(reconnectOnStartupKey) === "1";
+  }
+
   connect(settings: ConnectionSettings): void {
     this.closeSocket();
     this.saveSettings(settings);
@@ -97,6 +102,7 @@ export class RelayClientService {
       if (this.socket !== socket) {
         return;
       }
+      this.setReconnectOnStartup(true);
       this.status.set("connected");
       this.reconnectAttempt = 0;
       this.log("Relay connected");
@@ -128,6 +134,7 @@ export class RelayClientService {
 
   disconnect(): void {
     this.manuallyDisconnected = true;
+    this.setReconnectOnStartup(false);
     this.clearReconnect();
     this.closeSocket();
     this.rejectPending("Relay disconnected");
@@ -317,5 +324,13 @@ export class RelayClientService {
   private log(message: string): void {
     const stamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     this.activity.update((items) => [`${stamp} / ${message}`, ...items].slice(0, 24));
+  }
+
+  private setReconnectOnStartup(enabled: boolean): void {
+    if (enabled) {
+      localStorage.setItem(reconnectOnStartupKey, "1");
+    } else {
+      localStorage.removeItem(reconnectOnStartupKey);
+    }
   }
 }

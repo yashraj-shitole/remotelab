@@ -85,7 +85,10 @@ export class AppComponent {
       )
       .subscribe(() => this.section.set(this.sectionFromUrl(this.router.url)));
 
-    this.applyPairingFromLocation();
+    const pairingApplied = this.applyPairingFromLocation();
+    if (!pairingApplied) {
+      this.tryReconnectFromStoredSettings();
+    }
   }
 
   connect(): void {
@@ -106,7 +109,11 @@ export class AppComponent {
   }
 
   updateSetting(key: "relayUrl" | "pairingCode" | "relaySecret" | "deviceName", value: string): void {
-    this.settings.update((settings) => ({ ...settings, [key]: value }));
+    this.settings.update((settings) => {
+      const nextSettings = { ...settings, [key]: value };
+      this.relay.saveSettings(nextSettings);
+      return nextSettings;
+    });
   }
 
   setSection(section: AppSection): void {
@@ -309,9 +316,9 @@ export class AppComponent {
     };
   }
 
-  private applyPairingFromLocation(): void {
+  private applyPairingFromLocation(): boolean {
     if (typeof window === "undefined") {
-      return;
+      return false;
     }
 
     const current = new URL(window.location.href);
@@ -326,7 +333,7 @@ export class AppComponent {
       if (!payload) {
         this.relay.lastError.set("Pairing QR is invalid. Generate a new pairing QR from VS Code.");
         this.clearPairingParamsFromLocation(current);
-        return;
+        return true;
       }
 
       if (typeof payload.expiresAt === "string") {
@@ -334,7 +341,7 @@ export class AppComponent {
         if (!Number.isNaN(expiresAt) && expiresAt < Date.now()) {
           this.relay.lastError.set("Pairing QR has expired. Generate a new pairing QR from VS Code.");
           this.clearPairingParamsFromLocation(current);
-          return;
+          return true;
         }
       }
 
@@ -342,7 +349,7 @@ export class AppComponent {
       if (!importedSettings) {
         this.relay.lastError.set("Pairing QR is missing relay settings.");
         this.clearPairingParamsFromLocation(current);
-        return;
+        return true;
       }
 
       if (typeof payload.autoConnect === "boolean") {
@@ -354,14 +361,14 @@ export class AppComponent {
       const relaySecret = current.searchParams.get("relaySecret") ?? hashParams.get("relaySecret");
 
       if (!relayUrl || !pairingCode) {
-        return;
+        return false;
       }
 
       importedSettings = this.normalizeImportedSettings({ relayUrl, pairingCode, relaySecret });
       if (!importedSettings) {
         this.relay.lastError.set("Pairing link is invalid.");
         this.clearPairingParamsFromLocation(current);
-        return;
+        return true;
       }
     }
 
@@ -378,6 +385,34 @@ export class AppComponent {
     if (shouldAutoConnect) {
       this.relay.connect(nextSettings);
     }
+
+    return true;
+  }
+
+  private tryReconnectFromStoredSettings(): void {
+    if (!this.relay.shouldReconnectOnStartup()) {
+      return;
+    }
+
+    const normalizedConnection = this.normalizeImportedSettings(this.settings());
+    if (!normalizedConnection) {
+      return;
+    }
+
+    const nextSettings: ConnectionSettings = {
+      ...this.settings(),
+      ...normalizedConnection,
+      deviceName: this.normalizeDeviceName(this.settings().deviceName)
+    };
+
+    this.settings.set(nextSettings);
+    this.relay.saveSettings(nextSettings);
+    this.relay.connect(nextSettings);
+  }
+
+  private normalizeDeviceName(deviceName: string): string {
+    const trimmed = deviceName.trim();
+    return trimmed || "Phone";
   }
 
   private decodePairingPayload(encodedPayload: string): PairingLinkPayload | undefined {
