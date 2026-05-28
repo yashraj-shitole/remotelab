@@ -8,7 +8,9 @@
   "engines": {
     "vscode": "^1.117.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
     "onStartupFinished",
     "onCommand:remotelab.connectRelay",
@@ -91,13 +93,17 @@
         },
         "remotelab.terminalShellArgs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Arguments passed to the managed terminal shell."
         },
         "remotelab.commandAllowlist": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [
             "workbench.action.files.save",
             "workbench.action.quickOpen",
@@ -128,6 +134,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/qrcode": "^1.5.6",
     "@types/vscode": "^1.117.0",
     "@types/ws": "^8.18.1",
     "@vscode/vsce": "^3.9.1",

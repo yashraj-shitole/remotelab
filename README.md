@@ -73,6 +73,18 @@ Set these environment variables in your CI provider:
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 
+## QR Pairing
+
+RemoteLab now supports one-scan pairing for mobile.
+
+1. In VS Code, run `RemoteLab: Show Pairing QR`.
+2. Scan the QR code from your phone camera.
+3. The mobile app imports relay URL, pairing code, and relay secret from the link, then auto-connects.
+
+Optional extension setting:
+
+- `remotelab.mobilePairingUrl`: URL the QR opens on mobile (default `https://remotelab.live/home`).
+
 ## Security Notes
 
 Cloud relay mode is powerful. Treat the pairing code and relay secret like credentials. The relay does not execute commands, but a paired phone can ask the extension to run allowed local actions. VS Code command execution is allowlisted by default; set `remotelab.commandAllowlist` to add more commands or `*` only for trusted personal use.
