@@ -13,15 +13,18 @@
   </app-pairing-popup>
 }
 
-<main class="shell">
+<main class="shell" [class.home-shell]="section() === 'home'">
   @if (section() === 'home') {
-    <app-hero-section (continueCopilot)="continueCopilot()" (createTerminal)="createTerminal()"></app-hero-section>
-    <app-connection-section
+    <app-landing-page
       [statusLabel]="statusLabel()"
       [peerState]="relay.peerState()"
       [workspaceName]="workspaceName()"
-      [diagnosticsTotal]="diagnosticsTotal()">
-    </app-connection-section>
+      [diagnosticsTotal]="diagnosticsTotal()"
+      (openPairing)="openPairingPopup()"
+      (continueCopilot)="continueCopilot()"
+      (createTerminal)="createTerminal()"
+      (openSection)="setSection($event)">
+    </app-landing-page>
   }
 
   @if (section() === 'ai') {
@@ -88,11 +91,15 @@
     </app-trackpad-section>
   }
 
-  <app-activity-feed [activity]="relay.activity()"></app-activity-feed>
+  @if (section() !== 'home') {
+    <app-activity-feed [activity]="relay.activity()"></app-activity-feed>
+  }
 
   @if (relay.lastError()) {
     <p class="error">{{ relay.lastError() }}</p>
   }
 </main>
 
-<app-bottom-pill-nav [section]="section()" (sectionChange)="setSection($event)"></app-bottom-pill-nav>
+@if (section() !== 'home') {
+  <app-bottom-pill-nav [section]="section()" (sectionChange)="setSection($event)"></app-bottom-pill-nav>
+}

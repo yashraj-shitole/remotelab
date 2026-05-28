@@ -19,8 +19,7 @@ import { TrackpadSectionComponent } from "./features/trackpad/trackpad-section.c
 import { WorkspaceSectionComponent } from "./features/workspace/workspace-section.component";
 import { ActivityFeedComponent } from "./layout/activity-feed.component";
 import { BottomPillNavComponent } from "./layout/bottom-pill-nav.component";
-import { ConnectionSectionComponent } from "./layout/connection-section.component";
-import { HeroSectionComponent } from "./layout/hero-section.component";
+import { LandingPageComponent } from "./layout/landing-page.component";
 import { PairingPopupComponent } from "./layout/pairing-popup.component";
 import { TopNavComponent } from "./layout/top-nav.component";
 import { ConnectionSettings, RelayClientService } from "./core/services/relay-client.service";
@@ -44,8 +43,7 @@ const pairingParamNames = ["pair", "relayUrl", "pairingCode", "relaySecret", "au
     CommonModule,
     TopNavComponent,
     PairingPopupComponent,
-    HeroSectionComponent,
-    ConnectionSectionComponent,
+    LandingPageComponent,
     AiSectionComponent,
     TerminalSectionComponent,
     TrackpadSectionComponent,

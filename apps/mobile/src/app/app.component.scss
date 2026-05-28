@@ -10,6 +10,10 @@
   padding: var(--spacing-xl) var(--spacing-md) calc(var(--spacing-section) + 120px);
 }
 
+.shell.home-shell {
+  padding-bottom: var(--spacing-xxl);
+}
+
 .error {
   color: var(--color-warning);
   font-family: var(--font-mono);
