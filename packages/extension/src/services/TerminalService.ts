@@ -165,9 +165,7 @@ export class TerminalService implements vscode.Disposable {
     }
 
     const terminal = this.findVSCodeTerminal(terminalId);
-    if (terminal) {
-      this.sendInputToVSCodeTerminal(terminal, `${command}\r`);
-    }
+    terminal?.sendText(command, true);
     return terminal ? this.describeVSCodeTerminal(terminal) : undefined;
   }
 
@@ -371,22 +369,21 @@ export class TerminalService implements vscode.Disposable {
 
   private sendInputToVSCodeTerminal(terminal: vscode.Terminal, data: string): void {
     const normalized = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const endsWithNewline = normalized.endsWith("\n");
     const chunks = normalized.split("\n");
 
-    for (let index = 0; index < chunks.length - 1; index += 1) {
+    for (let index = 0; index < chunks.length; index += 1) {
       const chunk = chunks[index];
+      const isLast = index === chunks.length - 1;
 
-      if (chunk.length > 0) {
+      if (!isLast) {
         terminal.sendText(chunk, true);
-      } else {
-        // Some terminals can ignore an empty sendText("", true); send CR explicitly.
-        terminal.sendText("\r", false);
+        continue;
       }
-    }
 
-    const trailing = chunks[chunks.length - 1];
-    if (trailing.length > 0) {
-      terminal.sendText(trailing, false);
+      if (chunk.length > 0 || !endsWithNewline) {
+        terminal.sendText(chunk, false);
+      }
     }
   }
 
