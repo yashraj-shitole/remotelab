@@ -104,6 +104,13 @@
   margin-top: var(--spacing-xl);
 }
 
+.marketplace-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .button-primary.solid {
   border-color: transparent;
   background: var(--color-on-dark);

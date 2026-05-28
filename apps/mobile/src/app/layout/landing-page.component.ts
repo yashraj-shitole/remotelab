@@ -37,6 +37,15 @@ type WorkflowStep = {
             <button class="button-primary solid" type="button" (click)="openPairing.emit()">PAIR DEVICE</button>
             <button class="button-primary ghost" type="button" (click)="continueCopilot.emit()">CONTINUE COPILOT</button>
             <button class="button-primary ghost" type="button" (click)="createTerminal.emit()">NEW TERMINAL</button>
+            <a
+              class="button-primary ghost marketplace-link"
+              [href]="marketplaceUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Install RemoteLab VS Code extension from Marketplace"
+            >
+              INSTALL VS CODE EXTENSION
+            </a>
           </div>
 
           <div class="status-strip">
@@ -114,6 +123,8 @@ type WorkflowStep = {
   `
 })
 export class LandingPageComponent {
+  readonly marketplaceUrl = "https://marketplace.visualstudio.com/items?itemName=YashrajShitole.remotelab-vscode";
+
   @Input() statusLabel = "DISCONNECTED";
   @Input() peerState = "Awaiting relay";
   @Input() workspaceName = "NO WORKSPACE";
