@@ -1,41 +1,93 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, inject, signal } from "@angular/core";
-import { FormsModule } from "@angular/forms";
-import { DiagnosticSnapshot, FileMatch, GitStatusSnapshot, TaskSummary, WorkspaceSnapshot } from "@remotelab/shared";
-import { RelayClientService } from "./relay-client.service";
-import { TerminalPaneComponent } from "./terminal-pane.component";
-
-type Section = "ai" | "terminal" | "workspace";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { Component, DestroyRef, ViewEncapsulation, computed, inject, signal } from "@angular/core";
+import { NavigationEnd, Router } from "@angular/router";
+import { DiagnosticSnapshot, FileContentSnapshot, FileMatch, GitStatusSnapshot, TaskSummary } from "@remotelab/shared";
+import { filter } from "rxjs/operators";
+import { AiSectionComponent } from "./features/ai/ai-section.component";
+import { TerminalSectionComponent } from "./features/terminal/terminal-section.component";
+import { WorkspaceSectionComponent } from "./features/workspace/workspace-section.component";
+import { ActivityFeedComponent } from "./layout/activity-feed.component";
+import { BottomPillNavComponent } from "./layout/bottom-pill-nav.component";
+import { ConnectionSectionComponent } from "./layout/connection-section.component";
+import { HeroSectionComponent } from "./layout/hero-section.component";
+import { PairingPopupComponent } from "./layout/pairing-popup.component";
+import { TopNavComponent } from "./layout/top-nav.component";
+import { RelayClientService } from "./core/services/relay-client.service";
+import { AppSection } from "./core/types/app-section.type";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [CommonModule, FormsModule, TerminalPaneComponent],
+  imports: [
+    CommonModule,
+    TopNavComponent,
+    PairingPopupComponent,
+    HeroSectionComponent,
+    ConnectionSectionComponent,
+    AiSectionComponent,
+    TerminalSectionComponent,
+    WorkspaceSectionComponent,
+    ActivityFeedComponent,
+    BottomPillNavComponent
+  ],
   templateUrl: "./app.component.html",
-  styleUrl: "./app.component.scss"
+  styleUrls: ["./app.component.scss", "./common.css"],
+  encapsulation: ViewEncapsulation.None
 })
 export class AppComponent {
   readonly relay = inject(RelayClientService);
-  readonly section = signal<Section>("ai");
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly section = signal<AppSection>("home");
+  readonly pairingPopupOpen = signal(false);
   readonly settings = signal(this.relay.loadSettings());
   readonly prompt = signal("");
   readonly terminalCommand = signal("");
   readonly filePattern = signal("**/*.{ts,tsx,js,json,md,scss,html}");
+  readonly selectedFile = signal<FileContentSnapshot | undefined>(undefined);
+  readonly filePreviewLoading = signal(false);
 
   readonly statusLabel = computed(() => this.relay.status().toUpperCase());
   readonly workspaceName = computed(() => this.relay.snapshot()?.workspaceName ?? "NO WORKSPACE");
   readonly diagnosticsTotal = computed(() => this.relay.diagnostics()?.total ?? 0);
 
+  constructor() {
+    this.section.set(this.sectionFromUrl(this.router.url));
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => this.section.set(this.sectionFromUrl(this.router.url)));
+  }
+
   connect(): void {
     this.relay.connect(this.settings());
+  }
+
+  openPairingPopup(): void {
+    this.pairingPopupOpen.set(true);
+  }
+
+  closePairingPopup(): void {
+    this.pairingPopupOpen.set(false);
+  }
+
+  connectFromPairingPopup(): void {
+    this.connect();
+    this.closePairingPopup();
   }
 
   updateSetting(key: "relayUrl" | "pairingCode" | "relaySecret" | "deviceName", value: string): void {
     this.settings.update((settings) => ({ ...settings, [key]: value }));
   }
 
-  setSection(section: Section): void {
-    this.section.set(section);
+  setSection(section: AppSection): void {
+    if (section === this.section()) {
+      return;
+    }
+    void this.router.navigate([section]);
   }
 
   async continueCopilot(): Promise<void> {
@@ -106,11 +158,6 @@ export class AppComponent {
     this.terminalCommand.set("");
   }
 
-  async refresh(): Promise<void> {
-    const snapshot = await this.relay.command<WorkspaceSnapshot>("snapshot.get");
-    this.relay.applySnapshot(snapshot);
-  }
-
   async loadTasks(): Promise<void> {
     const tasks = await this.relay.command<TaskSummary[]>("task.list");
     this.relay.tasks.set(tasks);
@@ -132,11 +179,53 @@ export class AppComponent {
     void this.relay.command<FileMatch[]>("workspace.findFiles", { pattern: this.filePattern(), limit: 60 }).then((files) => this.relay.files.set(files));
   }
 
+  async viewFile(path: string): Promise<void> {
+    this.filePreviewLoading.set(true);
+    try {
+      const response = await this.relay.command<unknown>("workspace.readFile", { path, maxBytes: 120_000 });
+      const file = this.normalizeFileSnapshot(response, path);
+      this.selectedFile.set(file);
+      this.relay.lastError.set("");
+    } catch (error) {
+      this.selectedFile.set(undefined);
+      this.relay.lastError.set(error instanceof Error ? error.message : "Failed to load file preview");
+    } finally {
+      this.filePreviewLoading.set(false);
+    }
+  }
+
   openFile(path: string): void {
     void this.relay.command("editor.openFile", { path });
   }
 
   executeCommand(commandId: string): void {
     void this.relay.command("vscode.command", { commandId });
+  }
+
+  private normalizeFileSnapshot(value: unknown, fallbackPath: string): FileContentSnapshot {
+    if (!value || typeof value !== "object") {
+      throw new Error("File preview is unavailable: invalid response from extension. Reload the extension and reconnect.");
+    }
+
+    const candidate = value as Partial<FileContentSnapshot> & { text?: unknown };
+    const resolvedPath = typeof candidate.path === "string" && candidate.path ? candidate.path : fallbackPath;
+    const content = typeof candidate.content === "string" ? candidate.content : typeof candidate.text === "string" ? candidate.text : "";
+
+    return {
+      path: resolvedPath,
+      relativePath: typeof candidate.relativePath === "string" && candidate.relativePath ? candidate.relativePath : resolvedPath,
+      content,
+      byteLength: typeof candidate.byteLength === "number" && Number.isFinite(candidate.byteLength) ? candidate.byteLength : content.length,
+      truncated: Boolean(candidate.truncated),
+      isBinary: Boolean(candidate.isBinary)
+    };
+  }
+
+  private sectionFromUrl(url: string): AppSection {
+    const segment = url.split("?")[0].split("#")[0].replace(/^\/+/, "").split("/")[0];
+    if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai") {
+      return segment;
+    }
+    return "home";
   }
 }

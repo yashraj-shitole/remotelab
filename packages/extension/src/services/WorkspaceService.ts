@@ -1,6 +1,7 @@
 import * as path from "node:path";
+import { open } from "node:fs/promises";
 import * as vscode from "vscode";
-import { ActiveEditor, FileMatch, WorkspaceSnapshot } from "@remotelab/shared";
+import { ActiveEditor, FileContentSnapshot, FileMatch, WorkspaceSnapshot } from "@remotelab/shared";
 import { DiagnosticsService } from "./DiagnosticsService";
 import { GitService } from "./GitService";
 import { TerminalService } from "./TerminalService";
@@ -61,5 +62,95 @@ export class WorkspaceService {
       path: uri.fsPath,
       relativePath: root ? path.relative(root, uri.fsPath) : uri.fsPath
     }));
+  }
+
+  async readFile(filePath: string, maxBytes = 120_000): Promise<FileContentSnapshot> {
+    const normalizedPath = this.ensureWithinWorkspace(filePath);
+    const cappedMaxBytes = Math.min(1_000_000, Math.max(1_000, maxBytes));
+
+    const handle = await open(normalizedPath, "r");
+    try {
+      const stats = await handle.stat();
+      if (!stats.isFile()) {
+        throw new Error("Path is not a file");
+      }
+
+      const bytesToRead = Math.min(stats.size, cappedMaxBytes);
+      const buffer = Buffer.alloc(bytesToRead);
+      const { bytesRead } = await handle.read(buffer, 0, bytesToRead, 0);
+      const slice = buffer.subarray(0, bytesRead);
+      const isBinary = this.isLikelyBinary(slice);
+      const truncated = stats.size > cappedMaxBytes;
+
+      return {
+        path: normalizedPath,
+        relativePath: this.toRelativePath(normalizedPath),
+        content: isBinary ? "" : slice.toString("utf8"),
+        byteLength: stats.size,
+        truncated,
+        isBinary
+      };
+    } finally {
+      await handle.close();
+    }
+  }
+
+  private ensureWithinWorkspace(filePath: string): string {
+    const folders = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
+    if (!folders.length) {
+      throw new Error("No workspace is currently open");
+    }
+
+    const candidates: string[] = [];
+    if (path.isAbsolute(filePath)) {
+      candidates.push(path.resolve(filePath));
+    } else {
+      for (const folder of folders) {
+        candidates.push(path.resolve(folder, filePath));
+      }
+    }
+
+    const normalizedPath = candidates.find((candidate) => this.findWorkspaceRoot(candidate, folders));
+
+    if (!normalizedPath) {
+      throw new Error("File path is outside the active workspace");
+    }
+
+    return normalizedPath;
+  }
+
+  private toRelativePath(filePath: string): string {
+    const folders = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
+    const root = this.findWorkspaceRoot(filePath, folders);
+
+    return root ? path.relative(path.resolve(root), path.resolve(filePath)) : filePath;
+  }
+
+  private findWorkspaceRoot(filePath: string, folders: string[]): string | undefined {
+    return folders.find((folder) => this.isWithinFolder(filePath, folder));
+  }
+
+  private isWithinFolder(filePath: string, folderPath: string): boolean {
+    const normalizedPath = path.resolve(filePath);
+    const normalizedFolder = path.resolve(folderPath);
+
+    if (process.platform === "win32") {
+      const foldedPath = normalizedPath.toLowerCase();
+      const foldedFolder = normalizedFolder.toLowerCase();
+      return foldedPath === foldedFolder || foldedPath.startsWith(`${foldedFolder}${path.sep}`);
+    }
+
+    return normalizedPath === normalizedFolder || normalizedPath.startsWith(`${normalizedFolder}${path.sep}`);
+  }
+
+  private isLikelyBinary(buffer: Buffer): boolean {
+    const sample = buffer.subarray(0, Math.min(buffer.length, 2048));
+    for (const value of sample) {
+      if (value === 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

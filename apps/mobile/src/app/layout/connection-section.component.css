@@ -1,0 +1,8 @@
+.pairing-hint {
+  margin-top: var(--spacing-lg);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}

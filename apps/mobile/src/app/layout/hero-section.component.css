@@ -1,0 +1,21 @@
+.hero {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.lead {
+  max-width: 560px;
+  margin: var(--spacing-lg) 0 0;
+  color: var(--color-body-strong);
+  font-size: 20px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xl);
+}

@@ -108,6 +108,11 @@ export class CommandRouter {
         return this.workspace.openFile(String(args.path), asOptionalNumber(args.line), asOptionalNumber(args.character));
       case "workspace.findFiles":
         return this.workspace.findFiles(typeof args.pattern === "string" ? args.pattern : "**/*", asOptionalNumber(args.limit) ?? 80);
+      case "workspace.readFile":
+        if (typeof args.path !== "string" || !args.path) {
+          throw new Error("workspace.readFile requires a file path");
+        }
+        return this.workspace.readFile(args.path, asOptionalNumber(args.maxBytes) ?? 120_000);
       case "task.list":
         return this.tasks.list();
       case "task.run":
@@ -116,6 +121,8 @@ export class CommandRouter {
         return this.git.status(typeof args.cwd === "string" ? args.cwd : undefined);
       case "diagnostics.list":
         return this.diagnostics.list(asOptionalNumber(args.limit) ?? 80);
+      default:
+        throw new Error(`Unsupported command: ${request.command}`);
     }
   }
 

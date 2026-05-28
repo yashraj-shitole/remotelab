@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  background: var(--color-canvas);
+  overflow: hidden;
+}
+
+.terminal-host {
+  height: clamp(280px, 42vh, 420px);
+  padding: 16px 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.terminal-host :is(.xterm, .xterm-screen) {
+  max-width: 100%;
+}

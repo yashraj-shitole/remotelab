@@ -28,6 +28,7 @@ type ManagedTerminal = {
   sequence: number;
   columns: number;
   rows: number;
+  pendingInput: string[];
 };
 
 type TerminalBuffer = {
@@ -94,6 +95,7 @@ export class TerminalService implements vscode.Disposable {
       sequence: 0,
       columns: 80,
       rows: 24,
+      pendingInput: [],
       terminal: undefined as unknown as vscode.Terminal
     };
 
@@ -104,6 +106,12 @@ export class TerminalService implements vscode.Disposable {
         managed.columns = dimensions?.columns ?? managed.columns;
         managed.rows = dimensions?.rows ?? managed.rows;
         managed.process = this.startProcess(managed, dimensions);
+        if (managed.pendingInput.length > 0) {
+          for (const chunk of managed.pendingInput) {
+            managed.process.write(chunk);
+          }
+          managed.pendingInput = [];
+        }
       },
       close: () => {
         managed.process?.kill();
@@ -129,19 +137,30 @@ export class TerminalService implements vscode.Disposable {
   async input(terminalId: string, data: string): Promise<TerminalSummary | undefined> {
     const managed = this.managed.get(terminalId);
     if (managed) {
-      managed.process?.write(data);
+      if (managed.process) {
+        managed.process.write(data);
+      } else {
+        managed.pendingInput.push(data);
+      }
       return this.describeManagedTerminal(managed);
     }
 
     const terminal = this.findVSCodeTerminal(terminalId);
-    terminal?.sendText(data, false);
+    if (terminal) {
+      this.sendInputToVSCodeTerminal(terminal, data);
+    }
     return terminal ? this.describeVSCodeTerminal(terminal) : undefined;
   }
 
   async execute(terminalId: string, command: string): Promise<TerminalSummary | undefined> {
     const managed = this.managed.get(terminalId);
     if (managed) {
-      managed.process?.write(`${command}\r`);
+      const payload = `${command}\r`;
+      if (managed.process) {
+        managed.process.write(payload);
+      } else {
+        managed.pendingInput.push(payload);
+      }
       return this.describeManagedTerminal(managed);
     }
 
@@ -256,7 +275,7 @@ export class TerminalService implements vscode.Disposable {
 
     return {
       pid: child.pid,
-      write: (data: string) => child.stdin.write(data),
+      write: (data: string) => child.stdin.write(normalizeInputForPipe(data)),
       kill: () => child.kill()
     };
   }
@@ -348,6 +367,26 @@ export class TerminalService implements vscode.Disposable {
 
   private readonly buffers = new Map<string, TerminalBuffer>();
 
+  private sendInputToVSCodeTerminal(terminal: vscode.Terminal, data: string): void {
+    const normalized = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const endsWithNewline = normalized.endsWith("\n");
+    const chunks = normalized.split("\n");
+
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+      const isLast = index === chunks.length - 1;
+
+      if (!isLast) {
+        terminal.sendText(chunk, true);
+        continue;
+      }
+
+      if (chunk.length > 0 || !endsWithNewline) {
+        terminal.sendText(chunk, false);
+      }
+    }
+  }
+
   private publish(event: TerminalOutputEvent): void {
     const current = this.buffers.get(event.terminalId) ?? { data: "", sequence: 0, truncated: false };
     const nextData = `${current.data}${event.data}`;
@@ -392,4 +431,9 @@ function clampDimension(value: number, min: number, max: number): number {
     return min;
   }
   return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function normalizeInputForPipe(data: string): string {
+  // Pipe-backed shells generally expect LF for command submission.
+  return data.replace(/\r(?!\n)/g, "\n");
 }

@@ -1,0 +1,46 @@
+.pairing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-md);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.pairing-modal {
+  width: min(100%, 560px);
+  border: 1px solid var(--color-hairline-strong);
+  background: rgba(10, 10, 10, 0.96);
+  padding: var(--spacing-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.pairing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.close-button {
+  min-height: 36px;
+  width: 36px;
+  font-size: 12px;
+}
+
+.pairing-modal h2 {
+  margin-top: var(--spacing-xs);
+}
+
+.connection-form {
+  display: grid;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.connection-form .button-primary {
+  justify-self: start;
+  margin-top: var(--spacing-sm);
+}

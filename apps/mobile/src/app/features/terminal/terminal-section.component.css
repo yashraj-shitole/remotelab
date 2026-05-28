@@ -1,0 +1,40 @@
+.panel-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.terminal-list {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-xl) 0;
+}
+
+.terminal-list button {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-none);
+  background: transparent;
+  color: var(--color-on-dark);
+  text-align: left;
+  display: grid;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-md) 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.terminal-list button.active {
+  border-bottom-color: var(--color-on-dark);
+}
+
+.terminal-list small {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+}

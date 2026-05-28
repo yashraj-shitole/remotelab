@@ -6,7 +6,7 @@
   "publisher": "local",
   "private": true,
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.117.0"
   },
   "categories": ["Other"],
   "activationEvents": [
@@ -106,7 +106,7 @@
     "build": "node esbuild.mjs --production",
     "watch": "node esbuild.mjs --watch",
     "check": "tsc -p tsconfig.json --noEmit",
-    "package": "vsce package"
+    "package": "vsce package --no-dependencies --allow-missing-repository --skip-license"
   },
   "dependencies": {
     "@remotelab/shared": "file:../shared",
@@ -117,7 +117,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "@types/vscode": "^1.120.0",
+    "@types/vscode": "^1.117.0",
     "@types/ws": "^8.18.1",
     "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.28.0"

@@ -1,179 +1,85 @@
-<header class="top-nav">
-  <button class="nav-link" type="button" (click)="setSection('workspace')">MENU</button>
-  <div class="wordmark">REMOTELAB</div>
-  <button class="nav-link" type="button" (click)="connect()">PAIR</button>
-</header>
+<app-top-nav
+  [connected]="relay.status() === 'connected'"
+  (menuAction)="setSection('home')"
+  (pairAction)="openPairingPopup()">
+</app-top-nav>
+
+@if (pairingPopupOpen()) {
+  <app-pairing-popup
+    [settings]="settings()"
+    (close)="closePairingPopup()"
+    (connectAction)="connectFromPairingPopup()"
+    (settingChange)="updateSetting($event.key, $event.value)">
+  </app-pairing-popup>
+}
 
 <main class="shell">
-  <section class="hero">
-    <p class="caption">VS CODE CONTROL SURFACE</p>
-    <h1>AI CODING FROM ANYWHERE</h1>
-    <p class="lead">Continue Copilot CLI sessions, steer terminals, inspect git, and move through the editor while the workstation keeps the engine running.</p>
-    <div class="hero-actions">
-      <button class="button-primary" type="button" (click)="continueCopilot()">CONTINUE CLI</button>
-      <button class="button-primary" type="button" (click)="createTerminal()">NEW TERMINAL</button>
-    </div>
-  </section>
-
-  <section class="connection">
-    <div>
-      <p class="caption">RELAY STATUS</p>
-      <h2>{{ statusLabel() }}</h2>
-      <p>{{ relay.peerState() }}</p>
-      <p class="muted">{{ workspaceName() }} / {{ diagnosticsTotal() }} DIAGNOSTICS</p>
-    </div>
-
-    <form class="connection-form" (ngSubmit)="connect()">
-      <label>
-        <span>RELAY URL</span>
-        <input [ngModel]="settings().relayUrl" (ngModelChange)="updateSetting('relayUrl', $event)" name="relayUrl" autocomplete="url">
-      </label>
-      <label>
-        <span>PAIRING CODE</span>
-        <input [ngModel]="settings().pairingCode" (ngModelChange)="updateSetting('pairingCode', $event)" name="pairingCode" autocomplete="one-time-code">
-      </label>
-      <label>
-        <span>RELAY SECRET</span>
-        <input [ngModel]="settings().relaySecret" (ngModelChange)="updateSetting('relaySecret', $event)" name="relaySecret" type="password">
-      </label>
-      <label>
-        <span>DEVICE</span>
-        <input [ngModel]="settings().deviceName" (ngModelChange)="updateSetting('deviceName', $event)" name="deviceName">
-      </label>
-      <button class="button-primary" type="submit">CONNECT</button>
-    </form>
-  </section>
-
-  <nav class="section-tabs" aria-label="RemoteLab sections">
-    <button [class.active]="section() === 'ai'" type="button" (click)="setSection('ai')">AI</button>
-    <button [class.active]="section() === 'terminal'" type="button" (click)="setSection('terminal')">TERMINALS</button>
-    <button [class.active]="section() === 'workspace'" type="button" (click)="setSection('workspace')">WORKSPACE</button>
-  </nav>
+  @if (section() === 'home') {
+    <app-hero-section (continueCopilot)="continueCopilot()" (createTerminal)="createTerminal()"></app-hero-section>
+    <app-connection-section
+      [statusLabel]="statusLabel()"
+      [peerState]="relay.peerState()"
+      [workspaceName]="workspaceName()"
+      [diagnosticsTotal]="diagnosticsTotal()">
+    </app-connection-section>
+  }
 
   @if (section() === 'ai') {
-    <section class="panel">
-      <p class="caption">COPILOT CLI</p>
-      <h2>LOCAL SESSION CONTROL</h2>
-      <p>Resume the workstation’s Copilot CLI context and keep remote steering enabled for GitHub Mobile or browser access.</p>
-      <div class="button-row">
-        <button class="button-primary" type="button" (click)="newCopilot()">NEW</button>
-        <button class="button-primary" type="button" (click)="continueCopilot()">CONTINUE</button>
-        <button class="button-primary" type="button" (click)="resumeCopilot()">RESUME</button>
-      </div>
-      <label class="prompt">
-        <span>PROMPT</span>
-        <textarea [ngModel]="prompt()" (ngModelChange)="prompt.set($event)" name="prompt" rows="4" placeholder="Ask Copilot to continue the task..."></textarea>
-      </label>
-      <button class="button-primary" type="button" (click)="sendPrompt()">SEND PROMPT</button>
-    </section>
+    <app-ai-section
+      [prompt]="prompt()"
+      (newCopilot)="newCopilot()"
+      (continueCopilot)="continueCopilot()"
+      (resumeCopilot)="resumeCopilot()"
+      (promptChange)="prompt.set($event)"
+      (sendPrompt)="sendPrompt()">
+    </app-ai-section>
   }
 
   @if (section() === 'terminal') {
-    <section class="panel">
-      <div class="panel-heading">
-        <div>
-          <p class="caption">TERMINALS</p>
-          <h2>LIVE CONTROL</h2>
-        </div>
-        <button class="button-icon" type="button" (click)="createTerminal()">+</button>
-      </div>
-
-      <div class="button-row compact">
-        <button class="button-primary" type="button" (click)="showTerminal()">SHOW</button>
-        <button class="button-primary" type="button" (click)="relay.loadTerminalBuffer()">SYNC</button>
-        <button class="button-primary" type="button" (click)="clearTerminal()">CLEAR</button>
-        <button class="button-primary danger" type="button" (click)="killTerminal()">KILL</button>
-      </div>
-
-      <div class="terminal-list">
-        @for (terminal of relay.terminals(); track terminal.id) {
-          <button type="button" [class.active]="relay.activeTerminalId() === terminal.id" (click)="selectTerminal(terminal.id)">
-            <span>{{ terminal.name }}</span>
-            <small>{{ terminal.kind }} / {{ terminal.canReadOutput ? 'READ' : 'INPUT ONLY' }}</small>
-          </button>
-        }
-      </div>
-
-      <app-terminal-pane
-        [terminalId]="relay.activeTerminalId()"
-        [output]="relay.activeTerminalOutput()"
-        (inputData)="relay.appendTerminalInput($event)"
-        (dimensionsChange)="resizeTerminal($event)">
-      </app-terminal-pane>
-
-      <form class="command-form" (ngSubmit)="runTerminalCommand()">
-        <input [ngModel]="terminalCommand()" (ngModelChange)="terminalCommand.set($event)" name="terminalCommand" placeholder="npm test">
-        <button class="button-primary" type="submit">RUN</button>
-      </form>
-    </section>
+    <app-terminal-section
+      [terminals]="relay.terminals()"
+      [activeTerminalId]="relay.activeTerminalId()"
+      [activeTerminalOutput]="relay.activeTerminalOutput()"
+      [terminalCommand]="terminalCommand()"
+      (createTerminal)="createTerminal()"
+      (showTerminal)="showTerminal()"
+      (syncTerminal)="relay.loadTerminalBuffer()"
+      (clearTerminal)="clearTerminal()"
+      (killTerminal)="killTerminal()"
+      (selectTerminal)="selectTerminal($event)"
+      (terminalInput)="relay.appendTerminalInput($event)"
+      (dimensionsChange)="resizeTerminal($event)"
+      (terminalCommandChange)="terminalCommand.set($event)"
+      (runTerminalCommand)="runTerminalCommand()">
+    </app-terminal-section>
   }
 
   @if (section() === 'workspace') {
-    <section class="panel">
-      <p class="caption">WORKSPACE</p>
-      <h2>EDITOR COMMAND</h2>
-      <div class="button-row">
-        <button class="button-primary" type="button" (click)="executeCommand('workbench.action.files.save')">SAVE</button>
-        <button class="button-primary" type="button" (click)="executeCommand('workbench.action.quickOpen')">QUICK OPEN</button>
-        <button class="button-primary" type="button" (click)="executeCommand('workbench.action.problems.focus')">PROBLEMS</button>
-      </div>
-
-      <div class="data-band">
-        <div>
-          <p class="caption">GIT</p>
-          <button class="text-link" type="button" (click)="refreshGit()">REFRESH GIT</button>
-          <p class="mono">{{ relay.git()?.branchLine || 'NO BRANCH DATA' }}</p>
-          @for (entry of relay.git()?.entries ?? []; track entry) {
-            <p class="row">{{ entry }}</p>
-          }
-        </div>
-
-        <div>
-          <p class="caption">DIAGNOSTICS</p>
-          <button class="text-link" type="button" (click)="refreshDiagnostics()">REFRESH DIAGNOSTICS</button>
-          @for (item of relay.diagnostics()?.items ?? []; track item.file + item.line + item.message) {
-            <button class="row row-button" type="button" (click)="openFile(item.file)">
-              {{ item.severity }} / {{ item.file }}:{{ item.line }} {{ item.message }}
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="data-band">
-        <div>
-          <p class="caption">TASKS</p>
-          <button class="text-link" type="button" (click)="loadTasks()">LOAD TASKS</button>
-          @for (task of relay.tasks(); track task.id) {
-            <button class="row row-button" type="button" (click)="runTask(task.id)">
-              {{ task.source }} / {{ task.name }}
-            </button>
-          }
-        </div>
-
-        <div>
-          <p class="caption">FILES</p>
-          <div class="command-form">
-            <input [ngModel]="filePattern()" (ngModelChange)="filePattern.set($event)" name="filePattern">
-            <button class="button-primary" type="button" (click)="findFiles()">FIND</button>
-          </div>
-          @for (file of relay.files(); track file.path) {
-            <button class="row row-button" type="button" (click)="openFile(file.path)">
-              {{ file.relativePath }}
-            </button>
-          }
-        </div>
-      </div>
-    </section>
+    <app-workspace-section
+      [git]="relay.git()"
+      [diagnostics]="relay.diagnostics()"
+      [tasks]="relay.tasks()"
+      [files]="relay.files()"
+      [filePattern]="filePattern()"
+      [selectedFile]="selectedFile()"
+      [filePreviewLoading]="filePreviewLoading()"
+      (executeCommand)="executeCommand($event)"
+      (refreshGit)="refreshGit()"
+      (refreshDiagnostics)="refreshDiagnostics()"
+      (loadTasks)="loadTasks()"
+      (runTask)="runTask($event)"
+      (filePatternChange)="filePattern.set($event)"
+      (findFiles)="findFiles()"
+      (viewFile)="viewFile($event)"
+      (openFile)="openFile($event)">
+    </app-workspace-section>
   }
 
-  <section class="activity">
-    <p class="caption">ACTIVITY</p>
-    @for (item of relay.activity(); track item) {
-      <p class="row">{{ item }}</p>
-    }
-  </section>
+  <app-activity-feed [activity]="relay.activity()"></app-activity-feed>
 
   @if (relay.lastError()) {
     <p class="error">{{ relay.lastError() }}</p>
   }
 </main>
+
+<app-bottom-pill-nav [section]="section()" (sectionChange)="setSection($event)"></app-bottom-pill-nav>

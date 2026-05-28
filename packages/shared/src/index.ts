@@ -33,6 +33,7 @@ export type RemoteLabCommand =
   | "editor.active"
   | "editor.openFile"
   | "workspace.findFiles"
+  | "workspace.readFile"
   | "task.list"
   | "task.run"
   | "git.status"
@@ -108,6 +109,15 @@ export interface ActiveEditor {
 export interface FileMatch {
   path: string;
   relativePath: string;
+}
+
+export interface FileContentSnapshot {
+  path: string;
+  relativePath: string;
+  content: string;
+  byteLength: number;
+  truncated: boolean;
+  isBinary: boolean;
 }
 
 export interface GitStatusSnapshot {

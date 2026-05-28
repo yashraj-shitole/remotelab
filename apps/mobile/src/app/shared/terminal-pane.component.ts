@@ -1,24 +1,12 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from "@angular/core";
+import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 
 @Component({
   selector: "app-terminal-pane",
   standalone: true,
+  styleUrl: "./terminal-pane.component.css",
   template: `<div #host class="terminal-host" aria-label="Terminal output"></div>`,
-  styles: [`
-    :host {
-      display: block;
-      min-height: 320px;
-      border-top: 1px solid var(--color-hairline);
-      border-bottom: 1px solid var(--color-hairline);
-      background: var(--color-canvas);
-    }
-
-    .terminal-host {
-      min-height: 320px;
-      padding: 16px 0;
-    }
-  `]
 })
 export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() terminalId = "";
@@ -28,10 +16,12 @@ export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestro
   @ViewChild("host", { static: true }) private host?: ElementRef<HTMLDivElement>;
 
   private terminal?: Terminal;
+  private fitAddon?: FitAddon;
   private written = "";
   private currentTerminalId = "";
   private resizeObserver?: ResizeObserver;
   private lastDimensions = "";
+  private fitFrame?: number;
 
   ngAfterViewInit(): void {
     this.terminal = new Terminal({
@@ -51,11 +41,21 @@ export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestro
         brightWhite: "#ffffff"
       }
     });
+    this.fitAddon = new FitAddon();
+    this.terminal.loadAddon(this.fitAddon);
     this.terminal.open(this.host!.nativeElement);
     this.terminal.onData((data) => this.inputData.emit(data));
-    this.resizeObserver = new ResizeObserver(() => this.emitDimensions());
+    this.resizeObserver = new ResizeObserver(() => this.fitAndEmitDimensions());
     this.resizeObserver.observe(this.host!.nativeElement);
-    this.emitDimensions();
+
+    this.fitAndEmitDimensions();
+    this.fitFrame = window.requestAnimationFrame(() => this.fitAndEmitDimensions());
+
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    if (fonts) {
+      void fonts.ready.then(() => this.fitAndEmitDimensions());
+    }
+
     this.sync();
   }
 
@@ -70,7 +70,12 @@ export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestro
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    if (this.fitFrame !== undefined) {
+      window.cancelAnimationFrame(this.fitFrame);
+    }
     this.terminal?.dispose();
+    this.terminal = undefined;
+    this.fitAddon = undefined;
   }
 
   private sync(): void {
@@ -90,14 +95,23 @@ export class TerminalPaneComponent implements AfterViewInit, OnChanges, OnDestro
     }
   }
 
-  private emitDimensions(): void {
-    const element = this.host?.nativeElement;
-    if (!element) {
+  private fitAndEmitDimensions(): void {
+    if (!this.terminal || !this.fitAddon) {
       return;
     }
 
-    const columns = Math.max(20, Math.floor(element.clientWidth / 7.2));
-    const rows = Math.max(8, Math.floor(element.clientHeight / 16.2));
+    try {
+      this.fitAddon.fit();
+    } catch {
+      return;
+    }
+
+    const columns = this.terminal.cols;
+    const rows = this.terminal.rows;
+    if (columns <= 0 || rows <= 0) {
+      return;
+    }
+
     const key = `${columns}x${rows}`;
     if (key === this.lastDimensions) {
       return;
