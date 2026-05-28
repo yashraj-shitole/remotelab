@@ -1,9 +1,20 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from "@angular/core";
+import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import loader from "@monaco-editor/loader";
 import { ActiveEditor, DiagnosticSnapshot, FileContentSnapshot, FileMatch, GitStatusSnapshot, TaskSummary } from "@remotelab/shared";
+import type { editor, IDisposable } from "monaco-editor";
+
+type MonacoApi = typeof import("monaco-editor");
 
 type OpenFileRequest = {
   path: string;
+  line?: number;
+  character?: number;
+};
+
+type SaveFileRequest = {
+  path: string;
+  content: string;
   line?: number;
   character?: number;
 };
@@ -42,11 +53,6 @@ type ExplorerFileRow = {
 
 type ExplorerRow = ExplorerFolderRow | ExplorerFileRow;
 
-type PreviewLine = {
-  number: number;
-  text: string;
-};
-
 const defaultGlobPattern = "**/*";
 
 const extensionIcons: Record<string, string> = {
@@ -70,6 +76,8 @@ const extensionIcons: Record<string, string> = {
   hpp: "HPP",
   rs: "RS"
 };
+
+let monacoLoaderPromise: Promise<MonacoApi> | undefined;
 
 @Component({
   selector: "app-workspace-section",
@@ -179,9 +187,17 @@ const extensionIcons: Record<string, string> = {
 
           <div class="file-preview">
             <div class="file-preview-header">
-              <p class="caption">FILE CONTENT</p>
-              @if (selectedFile) {
-                <button class="text-link" type="button" (click)="openPreviewInEditor()">OPEN WITH CURSOR</button>
+              <p class="caption">FILE EDITOR</p>
+
+              @if (selectedFile && !selectedFile.isBinary) {
+                <div class="preview-actions">
+                  <button class="text-link" type="button" (click)="openPreviewInEditor()">OPEN WITH CURSOR</button>
+                  <button class="text-link" type="button" [disabled]="fileSaveLoading || !editorDirty" (click)="saveRemoteFile()">
+                    {{ fileSaveLoading ? "SAVING..." : "SAVE REMOTE" }}
+                  </button>
+                </div>
+              } @else if (selectedFile) {
+                <button class="text-link" type="button" (click)="openPreviewInEditor()">OPEN IN EDITOR</button>
               }
             </div>
 
@@ -191,6 +207,8 @@ const extensionIcons: Record<string, string> = {
               <p class="row">SELECT A FILE TO PREVIEW.</p>
             } @else if (selectedFile.isBinary) {
               <p class="row">BINARY FILE PREVIEW IS NOT AVAILABLE.</p>
+            } @else if (monacoLoadError) {
+              <p class="row">{{ monacoLoadError }}</p>
             } @else {
               <p class="mono">
                 {{ selectedFile.relativePath }} / {{ selectedFile.byteLength }} BYTES
@@ -198,26 +216,14 @@ const extensionIcons: Record<string, string> = {
                   <span> / TRUNCATED</span>
                 }
               </p>
-              <p class="row">CURSOR {{ previewCursorLine }}:{{ previewCursorCharacter }}</p>
-              <div class="file-content" role="listbox" aria-label="File preview lines">
-                @for (line of previewLines; track line.number) {
-                  <button
-                    class="file-line"
-                    type="button"
-                    [class.cursor-active]="line.number === previewCursorLine"
-                    (click)="onPreviewLineClick(line.number, $event)">
-                    <span class="line-number">{{ line.number }}</span>
-                    <span class="line-text">
-                      @if (line.number === previewCursorLine) {
-                        <span>{{ cursorPrefix(line) }}</span>
-                        <span class="cursor-marker" aria-hidden="true"></span>
-                        <span>{{ cursorSuffix(line) }}</span>
-                      } @else {
-                        {{ line.text || " " }}
-                      }
-                    </span>
-                  </button>
+              <p class="row">
+                CURSOR {{ previewCursorLine }}:{{ previewCursorCharacter }}
+                @if (editorDirty) {
+                  <span> / UNSAVED</span>
                 }
+              </p>
+              <div class="file-content" role="region" aria-label="Monaco file editor">
+                <div #monacoHost class="monaco-host"></div>
               </div>
             }
           </div>
@@ -226,7 +232,7 @@ const extensionIcons: Record<string, string> = {
     </section>
   `
 })
-export class WorkspaceSectionComponent implements OnChanges {
+export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
   @Input() git: GitStatusSnapshot | undefined;
   @Input() diagnostics: DiagnosticSnapshot | undefined;
   @Input() tasks: TaskSummary[] = [];
@@ -234,17 +240,34 @@ export class WorkspaceSectionComponent implements OnChanges {
   @Input() filePattern = defaultGlobPattern;
   @Input() selectedFile: FileContentSnapshot | undefined;
   @Input() filePreviewLoading = false;
+  @Input() fileSaveLoading = false;
   @Input() activeEditor: ActiveEditor | undefined;
+
+  @ViewChild("monacoHost")
+  set monacoHostRef(host: ElementRef<HTMLDivElement> | undefined) {
+    this.monacoHost = host;
+    if (host) {
+      void this.ensureMonacoEditor();
+    }
+  }
 
   quickSearch = "";
   filteredFileCount = 0;
   treeRows: ExplorerRow[] = [];
-  previewLines: PreviewLine[] = [];
   previewCursorLine = 1;
   previewCursorCharacter = 1;
+  editorDirty = false;
+  monacoLoadError = "";
 
   private filteredFiles: FileMatch[] = [];
   private readonly collapsedFolders = new Set<string>();
+
+  private monacoHost: ElementRef<HTMLDivElement> | undefined;
+  private monacoApi: MonacoApi | undefined;
+  private monacoEditor: editor.IStandaloneCodeEditor | undefined;
+  private monacoModel: editor.ITextModel | undefined;
+  private readonly monacoDisposables: IDisposable[] = [];
+  private applyingRemoteEditorState = false;
 
   @Output() executeCommand = new EventEmitter<string>();
   @Output() refreshGit = new EventEmitter<void>();
@@ -255,6 +278,7 @@ export class WorkspaceSectionComponent implements OnChanges {
   @Output() findFiles = new EventEmitter<void>();
   @Output() viewFile = new EventEmitter<string>();
   @Output() openFile = new EventEmitter<OpenFileRequest>();
+  @Output() saveFile = new EventEmitter<SaveFileRequest>();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes["files"] || changes["selectedFile"]) {
@@ -262,14 +286,22 @@ export class WorkspaceSectionComponent implements OnChanges {
     }
 
     if (changes["selectedFile"]) {
-      this.refreshPreviewLines();
       this.resetPreviewCursorFromContext();
-      return;
+      void this.syncMonacoFromSelectedFile();
     }
 
     if (changes["activeEditor"]) {
       this.syncPreviewCursorFromActiveEditor();
     }
+  }
+
+  ngOnDestroy(): void {
+    for (const disposable of this.monacoDisposables) {
+      disposable.dispose();
+    }
+    this.monacoDisposables.length = 0;
+    this.monacoEditor?.dispose();
+    this.monacoModel?.dispose();
   }
 
   onQuickSearchChange(value: string): void {
@@ -325,25 +357,14 @@ export class WorkspaceSectionComponent implements OnChanges {
     });
   }
 
-  setPreviewCursor(line: number, character: number): void {
-    const lineCount = this.previewLines.length || 1;
-    const safeLine = clamp(Math.round(line), 1, lineCount);
-    const lineText = this.previewLines[safeLine - 1]?.text ?? "";
-    const maxCharacter = Math.max(1, lineText.length + 1);
-    this.previewCursorLine = safeLine;
-    this.previewCursorCharacter = clamp(Math.round(character), 1, maxCharacter);
-  }
-
-  onPreviewLineClick(line: number, event: MouseEvent): void {
-    const character = this.characterFromPreviewClick(line, event);
-    this.setPreviewCursor(line, character);
-
-    if (!this.selectedFile) {
+  saveRemoteFile(): void {
+    if (!this.selectedFile || !this.monacoEditor || this.selectedFile.isBinary || this.fileSaveLoading || !this.editorDirty) {
       return;
     }
 
-    this.openFile.emit({
+    this.saveFile.emit({
       path: this.selectedFile.path,
+      content: this.monacoEditor.getValue(),
       line: this.previewCursorLine,
       character: this.previewCursorCharacter
     });
@@ -351,6 +372,113 @@ export class WorkspaceSectionComponent implements OnChanges {
 
   trackTreeRow(_index: number, row: ExplorerRow): string {
     return row.kind === "folder" ? `folder:${row.key}` : `file:${row.path}`;
+  }
+
+  private async ensureMonacoEditor(): Promise<void> {
+    if (this.monacoEditor || !this.monacoHost) {
+      return;
+    }
+
+    try {
+      this.monacoApi = await loadMonacoEditor();
+      this.monacoModel = this.monacoApi.editor.createModel("", "plaintext");
+      this.monacoEditor = this.monacoApi.editor.create(this.monacoHost.nativeElement, {
+        model: this.monacoModel,
+        language: "plaintext",
+        readOnly: true,
+        automaticLayout: true,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        fontSize: 13,
+        lineNumbersMinChars: 3,
+        wordWrap: "off",
+        renderWhitespace: "selection",
+        tabSize: 2,
+        insertSpaces: true,
+        theme: "vs-dark"
+      });
+
+      const editor = this.monacoEditor;
+
+      this.monacoDisposables.push(
+        editor.onDidChangeModelContent(() => {
+          if (this.applyingRemoteEditorState || !this.selectedFile || this.selectedFile.isBinary) {
+            return;
+          }
+
+          this.editorDirty = editor.getValue() !== this.selectedFile.content;
+        })
+      );
+
+      this.monacoDisposables.push(
+        editor.onDidChangeCursorPosition((event: editor.ICursorPositionChangedEvent) => {
+          this.setPreviewCursor(event.position.lineNumber, event.position.column);
+        })
+      );
+
+      this.monacoLoadError = "";
+      await this.syncMonacoFromSelectedFile();
+    } catch {
+      this.monacoLoadError = "Monaco editor failed to load. Check network access and reload the page.";
+    }
+  }
+
+  private async syncMonacoFromSelectedFile(): Promise<void> {
+    if (!this.selectedFile || this.selectedFile.isBinary) {
+      this.editorDirty = false;
+      return;
+    }
+
+    if (!this.monacoEditor) {
+      await this.ensureMonacoEditor();
+    }
+
+    if (!this.monacoApi || !this.monacoEditor || !this.monacoModel) {
+      return;
+    }
+
+    this.monacoApi.editor.setModelLanguage(this.monacoModel, this.monacoLanguageForPath(this.selectedFile.relativePath || this.selectedFile.path));
+    this.setMonacoContent(this.selectedFile.content);
+    this.monacoEditor.updateOptions({ readOnly: false });
+    this.editorDirty = false;
+    this.applyCursorToMonaco();
+  }
+
+  private setMonacoContent(content: string): void {
+    if (!this.monacoModel) {
+      return;
+    }
+
+    if (this.monacoModel.getValue() === content) {
+      return;
+    }
+
+    this.applyingRemoteEditorState = true;
+    this.monacoModel.setValue(content);
+    this.applyingRemoteEditorState = false;
+  }
+
+  private setPreviewCursor(line: number, character: number): void {
+    const lineCount = this.monacoModel?.getLineCount() ?? 1;
+    const safeLine = clamp(Math.round(line), 1, lineCount);
+    const maxCharacter = this.monacoModel?.getLineMaxColumn(safeLine) ?? 1;
+    this.previewCursorLine = safeLine;
+    this.previewCursorCharacter = clamp(Math.round(character), 1, maxCharacter);
+  }
+
+  private applyCursorToMonaco(): void {
+    if (!this.monacoEditor || !this.monacoModel) {
+      return;
+    }
+
+    const safeLine = clamp(this.previewCursorLine, 1, this.monacoModel.getLineCount());
+    const safeCharacter = clamp(this.previewCursorCharacter, 1, this.monacoModel.getLineMaxColumn(safeLine));
+    const position = this.monacoEditor.getPosition();
+
+    if (!position || position.lineNumber !== safeLine || position.column !== safeCharacter) {
+      this.monacoEditor.setPosition({ lineNumber: safeLine, column: safeCharacter });
+    }
+    this.monacoEditor.revealPositionInCenterIfOutsideViewport({ lineNumber: safeLine, column: safeCharacter });
   }
 
   private rebuildExplorerRows(): void {
@@ -444,19 +572,6 @@ export class WorkspaceSectionComponent implements OnChanges {
     }
   }
 
-  private refreshPreviewLines(): void {
-    if (!this.selectedFile || this.selectedFile.isBinary) {
-      this.previewLines = [];
-      return;
-    }
-
-    const lines = this.selectedFile.content.split(/\r?\n/);
-    this.previewLines = lines.map((text, index) => ({
-      number: index + 1,
-      text
-    }));
-  }
-
   private resetPreviewCursorFromContext(): void {
     if (!this.selectedFile) {
       this.previewCursorLine = 1;
@@ -466,10 +581,12 @@ export class WorkspaceSectionComponent implements OnChanges {
 
     if (this.activeEditor && this.isPathEqual(this.selectedFile.path, this.activeEditor.fileName)) {
       this.setPreviewCursor(this.activeEditor.line, this.activeEditor.character);
+      this.applyCursorToMonaco();
       return;
     }
 
     this.setPreviewCursor(1, 1);
+    this.applyCursorToMonaco();
   }
 
   private syncPreviewCursorFromActiveEditor(): void {
@@ -482,6 +599,7 @@ export class WorkspaceSectionComponent implements OnChanges {
     }
 
     this.setPreviewCursor(this.activeEditor.line, this.activeEditor.character);
+    this.applyCursorToMonaco();
   }
 
   private normalizeRelativePath(pathValue: string): string {
@@ -497,47 +615,44 @@ export class WorkspaceSectionComponent implements OnChanges {
     return extension && extensionIcons[extension] ? extensionIcons[extension] : "FILE";
   }
 
-  cursorPrefix(line: PreviewLine): string {
-    const index = this.cursorIndexForLine(line);
-    return line.text.slice(0, index);
-  }
-
-  cursorSuffix(line: PreviewLine): string {
-    const index = this.cursorIndexForLine(line);
-    const suffix = line.text.slice(index);
-    return suffix || " ";
-  }
-
-  private cursorIndexForLine(line: PreviewLine): number {
-    return clamp(this.previewCursorCharacter - 1, 0, line.text.length);
-  }
-
-  private characterFromPreviewClick(line: number, event: MouseEvent): number {
-    const lineEntry = this.previewLines.find((entry) => entry.number === line);
-    const textLength = lineEntry?.text.length ?? 0;
-    if (textLength === 0) {
-      return 1;
+  private monacoLanguageForPath(filePath: string): string {
+    const extension = filePath.includes(".") ? filePath.split(".").pop()?.toLowerCase() : "";
+    switch (extension) {
+      case "ts":
+      case "tsx":
+        return "typescript";
+      case "js":
+      case "jsx":
+        return "javascript";
+      case "json":
+        return "json";
+      case "md":
+        return "markdown";
+      case "html":
+        return "html";
+      case "css":
+      case "scss":
+        return "css";
+      case "yml":
+      case "yaml":
+        return "yaml";
+      case "py":
+        return "python";
+      case "go":
+        return "go";
+      case "java":
+        return "java";
+      case "rs":
+        return "rust";
+      case "c":
+      case "h":
+        return "c";
+      case "cpp":
+      case "hpp":
+        return "cpp";
+      default:
+        return "plaintext";
     }
-
-    const target = event.target instanceof HTMLElement ? event.target : undefined;
-    const lineTextElement = target?.closest(".line-text") as HTMLElement | null;
-    if (!lineTextElement) {
-      return 1;
-    }
-
-    const rect = lineTextElement.getBoundingClientRect();
-    if (!rect.width) {
-      return 1;
-    }
-
-    const style = window.getComputedStyle(lineTextElement);
-    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-    const contentWidth = Math.max(1, rect.width - paddingLeft - paddingRight);
-    const cursorX = clamp(event.clientX - rect.left - paddingLeft, 0, contentWidth);
-    const charWidth = contentWidth / Math.max(1, textLength);
-    const character = Math.floor(cursorX / Math.max(charWidth, 1)) + 1;
-    return clamp(character, 1, textLength + 1);
   }
 
   private isPathEqual(left: string | undefined, right: string | undefined): boolean {
@@ -552,6 +667,14 @@ export class WorkspaceSectionComponent implements OnChanges {
     const normalized = value.replace(/\\/g, "/");
     return /^[a-zA-Z]:\//.test(normalized) ? normalized.toLowerCase() : normalized;
   }
+}
+
+async function loadMonacoEditor(): Promise<MonacoApi> {
+  if (!monacoLoaderPromise) {
+    monacoLoaderPromise = loader.init() as Promise<MonacoApi>;
+  }
+
+  return monacoLoaderPromise;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {

@@ -63,6 +63,7 @@
       [filePattern]="filePattern()"
       [selectedFile]="selectedFile()"
       [filePreviewLoading]="filePreviewLoading()"
+      [fileSaveLoading]="fileSaveLoading()"
       [activeEditor]="relay.snapshot()?.activeEditor"
       (executeCommand)="executeCommand($event)"
       (refreshGit)="refreshGit()"
@@ -72,6 +73,7 @@
       (filePatternChange)="filePattern.set($event)"
       (findFiles)="findFiles()"
       (viewFile)="viewFile($event)"
+      (saveFile)="saveFile($event)"
       (openFile)="openFile($event)">
     </app-workspace-section>
   }

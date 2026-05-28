@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { open } from "node:fs/promises";
+import { open, writeFile as writeFileUtf8 } from "node:fs/promises";
 import * as vscode from "vscode";
 import { ActiveEditor, FileContentSnapshot, FileMatch, WorkspaceSnapshot } from "@remotelab/shared";
 import { DiagnosticsService } from "./DiagnosticsService";
@@ -93,6 +93,12 @@ export class WorkspaceService {
     } finally {
       await handle.close();
     }
+  }
+
+  async writeFile(filePath: string, content: string, maxBytes = 120_000): Promise<FileContentSnapshot> {
+    const normalizedPath = this.ensureWithinWorkspace(filePath);
+    await writeFileUtf8(normalizedPath, content, "utf8");
+    return this.readFile(normalizedPath, maxBytes);
   }
 
   private ensureWithinWorkspace(filePath: string): string {

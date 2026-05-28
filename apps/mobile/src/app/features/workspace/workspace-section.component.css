@@ -107,63 +107,29 @@
   gap: var(--spacing-md);
 }
 
+.preview-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .file-content {
   margin: var(--spacing-md) 0 0;
-  max-height: 360px;
-  overflow: auto;
+  min-height: 280px;
+  height: clamp(280px, 42vh, 520px);
   border: 1px solid var(--color-hairline);
   background: rgba(255, 255, 255, 0.02);
 }
 
-.file-line {
-  width: max-content;
-  min-width: 100%;
-  display: grid;
-  grid-template-columns: 64px auto;
-  border: 0;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-hairline) 85%, transparent);
-  padding: 0;
-  background: transparent;
-  text-align: left;
-  color: var(--color-on-dark);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  cursor: pointer;
+.monaco-host {
+  width: 100%;
+  height: 100%;
 }
 
-.file-line:last-child {
-  border-bottom: 0;
-}
-
-.file-line:hover {
-  background: color-mix(in oklab, var(--color-link) 8%, transparent);
-}
-
-.file-line.cursor-active {
-  background: color-mix(in oklab, var(--color-on-dark) 10%, transparent);
-}
-
-.line-number {
-  padding: 4px 8px;
-  color: var(--color-muted);
-  border-right: 1px solid color-mix(in oklab, var(--color-hairline) 80%, transparent);
-  user-select: none;
-}
-
-.line-text {
-  padding: 4px 10px;
-  white-space: pre;
-  cursor: text;
-}
-
-.cursor-marker {
-  display: inline-block;
-  width: 0;
-  margin: 0 0.5px;
-  border-left: 2px solid var(--color-link);
-  height: 1.2em;
-  vertical-align: text-bottom;
+.text-link[disabled] {
+  opacity: 0.5;
+  text-decoration: none;
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {

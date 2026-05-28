@@ -34,6 +34,7 @@ export type RemoteLabCommand =
   | "editor.openFile"
   | "workspace.findFiles"
   | "workspace.readFile"
+  | "workspace.writeFile"
   | "task.list"
   | "task.run"
   | "git.status"

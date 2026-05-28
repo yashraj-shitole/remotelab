@@ -115,6 +115,14 @@ export class CommandRouter {
           throw new Error("workspace.readFile requires a file path");
         }
         return this.workspace.readFile(args.path, asOptionalNumber(args.maxBytes) ?? 120_000);
+      case "workspace.writeFile":
+        if (typeof args.path !== "string" || !args.path) {
+          throw new Error("workspace.writeFile requires a file path");
+        }
+        if (typeof args.content !== "string") {
+          throw new Error("workspace.writeFile requires string content");
+        }
+        return this.workspace.writeFile(args.path, args.content, asOptionalNumber(args.maxBytes) ?? 120_000);
       case "task.list":
         return this.tasks.list();
       case "task.run":

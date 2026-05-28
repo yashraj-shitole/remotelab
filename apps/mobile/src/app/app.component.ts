@@ -69,6 +69,7 @@ export class AppComponent {
   readonly filePattern = signal("**/*");
   readonly selectedFile = signal<FileContentSnapshot | undefined>(undefined);
   readonly filePreviewLoading = signal(false);
+  readonly fileSaveLoading = signal(false);
 
   private pendingTrackpadMove: TrackpadMoveRequest | undefined;
   private trackpadMoveInFlight = false;
@@ -224,6 +225,33 @@ export class AppComponent {
 
   openFile(request: { path: string; line?: number; character?: number }): void {
     void this.relay.command("editor.openFile", request);
+  }
+
+  async saveFile(request: { path: string; content: string; line?: number; character?: number }): Promise<void> {
+    if (!request.path) {
+      return;
+    }
+
+    this.fileSaveLoading.set(true);
+    try {
+      const response = await this.relay.command<unknown>("workspace.writeFile", {
+        path: request.path,
+        content: request.content,
+        maxBytes: 120_000
+      });
+      const file = this.normalizeFileSnapshot(response, request.path);
+      this.selectedFile.set(file);
+      this.relay.lastError.set("");
+      void this.relay.command("editor.openFile", {
+        path: request.path,
+        line: request.line,
+        character: request.character
+      });
+    } catch (error) {
+      this.relay.lastError.set(error instanceof Error ? error.message : "Failed to save file");
+    } finally {
+      this.fileSaveLoading.set(false);
+    }
   }
 
   executeCommand(commandId: string): void {
