@@ -132,6 +132,10 @@
   pointer-events: none;
 }
 
+.loading-indicator {
+  margin-top: var(--spacing-sm);
+}
+
 @media (min-width: 768px) {
   .data-band {
     grid-template-columns: 1fr 1fr;

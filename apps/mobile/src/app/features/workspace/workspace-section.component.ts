@@ -89,7 +89,7 @@ let monacoLoaderPromise: Promise<MonacoApi> | undefined;
       <p class="caption">WORKSPACE</p>
       <h2>EDITOR COMMAND</h2>
       <div class="button-row">
-        <button class="button-primary" type="button" (click)="executeCommand.emit('workbench.action.files.save')">SAVE</button>
+        <button class="button-primary" type="button" (click)="onSaveAction()">SAVE</button>
         <button class="button-primary" type="button" (click)="executeCommand.emit('workbench.action.quickOpen')">QUICK OPEN</button>
         <button class="button-primary" type="button" (click)="executeCommand.emit('workbench.action.problems.focus')">PROBLEMS</button>
       </div>
@@ -201,10 +201,12 @@ let monacoLoaderPromise: Promise<MonacoApi> | undefined;
               }
             </div>
 
-            @if (filePreviewLoading) {
-              <p class="row">LOADING FILE...</p>
-            } @else if (!selectedFile) {
-              <p class="row">SELECT A FILE TO PREVIEW.</p>
+            @if (!selectedFile) {
+              @if (filePreviewLoading) {
+                <p class="row">LOADING FILE...</p>
+              } @else {
+                <p class="row">SELECT A FILE TO PREVIEW.</p>
+              }
             } @else if (selectedFile.isBinary) {
               <p class="row">BINARY FILE PREVIEW IS NOT AVAILABLE.</p>
             } @else if (monacoLoadError) {
@@ -225,6 +227,10 @@ let monacoLoaderPromise: Promise<MonacoApi> | undefined;
               <div class="file-content" role="region" aria-label="Monaco file editor">
                 <div #monacoHost class="monaco-host"></div>
               </div>
+
+              @if (filePreviewLoading) {
+                <p class="row loading-indicator">LOADING FILE...</p>
+              }
             }
           </div>
         </div>
@@ -246,9 +252,15 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
   @ViewChild("monacoHost")
   set monacoHostRef(host: ElementRef<HTMLDivElement> | undefined) {
     this.monacoHost = host;
-    if (host) {
-      void this.ensureMonacoEditor();
+    if (!host) {
+      return;
     }
+
+    if (this.monacoEditor && this.monacoEditor.getDomNode() !== host.nativeElement) {
+      this.disposeMonacoEditor();
+    }
+
+    void this.ensureMonacoEditor();
   }
 
   quickSearch = "";
@@ -296,11 +308,7 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    for (const disposable of this.monacoDisposables) {
-      disposable.dispose();
-    }
-    this.monacoDisposables.length = 0;
-    this.monacoEditor?.dispose();
+    this.disposeMonacoEditor();
     this.monacoModel?.dispose();
   }
 
@@ -357,6 +365,15 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
     });
   }
 
+  onSaveAction(): void {
+    if (this.selectedFile && !this.selectedFile.isBinary && this.editorDirty) {
+      this.saveRemoteFile();
+      return;
+    }
+
+    this.executeCommand.emit("workbench.action.files.save");
+  }
+
   saveRemoteFile(): void {
     if (!this.selectedFile || !this.monacoEditor || this.selectedFile.isBinary || this.fileSaveLoading || !this.editorDirty) {
       return;
@@ -381,7 +398,9 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
 
     try {
       this.monacoApi = await loadMonacoEditor();
-      this.monacoModel = this.monacoApi.editor.createModel("", "plaintext");
+      if (!this.monacoModel) {
+        this.monacoModel = this.monacoApi.editor.createModel("", "plaintext");
+      }
       this.monacoEditor = this.monacoApi.editor.create(this.monacoHost.nativeElement, {
         model: this.monacoModel,
         language: "plaintext",
@@ -399,6 +418,11 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
       });
 
       const editor = this.monacoEditor;
+
+      editor.addCommand(this.monacoApi.KeyMod.CtrlCmd | this.monacoApi.KeyCode.KeyS, () => {
+        this.onSaveAction();
+        return null;
+      });
 
       this.monacoDisposables.push(
         editor.onDidChangeModelContent(() => {
@@ -418,9 +442,19 @@ export class WorkspaceSectionComponent implements OnChanges, OnDestroy {
 
       this.monacoLoadError = "";
       await this.syncMonacoFromSelectedFile();
+      editor.layout();
     } catch {
       this.monacoLoadError = "Monaco editor failed to load. Check network access and reload the page.";
     }
+  }
+
+  private disposeMonacoEditor(): void {
+    for (const disposable of this.monacoDisposables) {
+      disposable.dispose();
+    }
+    this.monacoDisposables.length = 0;
+    this.monacoEditor?.dispose();
+    this.monacoEditor = undefined;
   }
 
   private async syncMonacoFromSelectedFile(): Promise<void> {
