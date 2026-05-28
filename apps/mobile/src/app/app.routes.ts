@@ -7,5 +7,6 @@ export const APP_ROUTES: Routes = [
   { path: "terminal", children: [] },
   { path: "workspace", children: [] },
   { path: "trackpad", children: [] },
+  { path: "activity", children: [] },
   { path: "**", redirectTo: "home" }
 ];

@@ -656,7 +656,7 @@ export class AppComponent {
 
   private sectionFromUrl(url: string): AppSection {
     const segment = url.split("?")[0].split("#")[0].replace(/^\/+/, "").split("/")[0];
-    if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai" || segment === "trackpad") {
+    if (segment === "home" || segment === "terminal" || segment === "workspace" || segment === "ai" || segment === "trackpad" || segment === "activity") {
       return segment;
     }
     return "home";

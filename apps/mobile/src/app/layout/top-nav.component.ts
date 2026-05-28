@@ -11,7 +11,6 @@ type ThemeMode = "dark" | "light";
       <button class="nav-link" type="button" (click)="menuAction.emit()">HOME</button>
       <div class="wordmark">REMOTELAB</div>
       <div class="nav-actions">
-        <button class="nav-link" type="button" (click)="pairAction.emit()">PAIR</button>
         <button
           class="nav-link theme-toggle"
           type="button"
@@ -34,6 +33,5 @@ export class TopNavComponent {
   @Input() connected = false;
   @Input() theme: ThemeMode = "dark";
   @Output() menuAction = new EventEmitter<void>();
-  @Output() pairAction = new EventEmitter<void>();
   @Output() themeAction = new EventEmitter<MouseEvent>();
 }

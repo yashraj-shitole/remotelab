@@ -29,6 +29,7 @@ export class BottomPillNavComponent {
     { section: "ai", label: "AI", hint: "Copilot" },
     { section: "terminal", label: "TERMINAL", hint: "Live shell" },
     { section: "workspace", label: "WORKSPACE", hint: "Files + tasks" },
-    { section: "trackpad", label: "TRACKPAD", hint: "Pointer" }
+    { section: "trackpad", label: "TRACKPAD", hint: "Pointer" },
+    { section: "activity", label: "ACTIVITY", hint: "Events" }
   ];
 }

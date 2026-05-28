@@ -9,7 +9,7 @@
 
 .bottom-pill-nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border: 1px solid color-mix(in oklab, var(--color-on-dark) 24%, transparent);

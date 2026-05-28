@@ -2,7 +2,6 @@
   [connected]="relay.status() === 'connected'"
   [theme]="theme()"
   (menuAction)="setSection('home')"
-  (pairAction)="openPairingPopup()"
   (themeAction)="toggleTheme($event)">
 </app-top-nav>
 
@@ -103,7 +102,7 @@
     </app-trackpad-section>
   }
 
-  @if (section() !== 'home') {
+  @if (section() === 'activity') {
     <app-activity-feed [activity]="relay.activity()"></app-activity-feed>
   }
 

@@ -1,1 +1,1 @@
-export type AppSection = "home" | "ai" | "terminal" | "workspace" | "trackpad";
+export type AppSection = "home" | "ai" | "terminal" | "workspace" | "trackpad" | "activity";
